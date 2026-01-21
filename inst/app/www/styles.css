@@ -1,0 +1,109 @@
+/* Cornfab TTS App Styles */
+
+.cornfab-header {
+  background: linear-gradient(135deg, #2c3e50 0%, #3498db 100%);
+  padding: 1rem;
+  margin: -1rem -1rem 1rem -1rem;
+}
+
+.header-content {
+  display: flex;
+  align-items: center;
+  max-width: 1200px;
+  margin: 0 auto;
+}
+
+.header-link {
+  display: flex;
+  align-items: center;
+  text-decoration: none;
+  color: white;
+}
+
+.header-link:hover {
+  color: #ecf0f1;
+}
+
+.header-logo {
+  height: 40px;
+  margin-right: 0.75rem;
+}
+
+.header-title {
+  font-size: 1.5rem;
+  font-weight: 600;
+  letter-spacing: 0.5px;
+}
+
+/* Settings panel */
+.settings-panel {
+  margin-bottom: 1rem;
+}
+
+.settings-panel summary {
+  cursor: pointer;
+  font-weight: 500;
+  color: #2c3e50;
+  padding: 0.5rem 0;
+}
+
+.settings-content {
+  padding-top: 0.5rem;
+}
+
+/* Voice parameters */
+.voice-params {
+  margin-top: 0.5rem;
+}
+
+.voice-params summary {
+  cursor: pointer;
+  font-weight: 500;
+  color: #2c3e50;
+  padding: 0.5rem 0;
+}
+
+.params-content {
+  padding-top: 0.5rem;
+}
+
+/* Status output */
+#status {
+  font-size: 0.875rem;
+  color: #666;
+  background: #f8f9fa;
+  padding: 0.5rem;
+  border-radius: 4px;
+  white-space: pre-wrap;
+}
+
+/* No audio placeholder */
+.no-audio {
+  text-align: center;
+  padding: 2rem;
+  color: #666;
+  background: #f8f9fa;
+  border-radius: 8px;
+}
+
+/* Text area */
+#text_input {
+  font-size: 1rem;
+  line-height: 1.5;
+}
+
+/* Generate button */
+.btn-primary {
+  margin-top: 0.5rem;
+}
+
+/* Download button */
+.btn-success {
+  width: 100%;
+}
+
+/* Audio player styling */
+audio {
+  border-radius: 8px;
+  background: #f8f9fa;
+}
