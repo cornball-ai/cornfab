@@ -32,6 +32,10 @@ jobs:
           echo "GITHUB_PAT=${GITHUB_PAT}" >> ~/.Renviron
           Rscript -e 'cat("GITHUB_PAT configured:", nchar(Sys.getenv("GITHUB_PAT")) > 0, "\n")'
 
+      - name: Install GitHub deps manually
+        run: |
+          Rscript -e 'remotes::install_github("cornball-ai/tts.api", auth_token = Sys.getenv("GITHUB_PAT"), upgrade = "never")'
+
       - name: Dependencies
         run: ./run.sh install_deps
 
