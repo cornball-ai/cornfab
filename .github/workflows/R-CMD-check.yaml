@@ -33,6 +33,16 @@ jobs:
           echo 'options(download.file.method = "libcurl")' >> ~/.Rprofile
           Rscript -e 'cat("GITHUB_PAT configured:", nchar(Sys.getenv("GITHUB_PAT")) > 0, "\n")'
 
+      - name: Debug GitHub API access
+        run: |
+          echo "=== Testing curl directly ==="
+          curl -s -o /dev/null -w "%{http_code}" -H "Authorization: token ${GITHUB_PAT}" https://api.github.com/repos/cornball-ai/tts.api
+          echo ""
+          echo "=== Testing with verbose ==="
+          curl -v -H "Authorization: token ${GITHUB_PAT}" https://api.github.com/repos/cornball-ai/tts.api 2>&1 | head -30
+          echo "=== R session info ==="
+          Rscript -e 'sessionInfo(); cat("GITHUB_PAT length:", nchar(Sys.getenv("GITHUB_PAT")), "\n"); cat("download.file.method:", getOption("download.file.method"), "\n")'
+
       - name: Update remotes
         run: Rscript -e 'install.packages("remotes")'
 
