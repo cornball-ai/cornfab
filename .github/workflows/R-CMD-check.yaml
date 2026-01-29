@@ -30,41 +30,10 @@ jobs:
       - name: Configure GitHub PAT
         run: |
           echo "GITHUB_PAT=${GITHUB_PAT}" >> ~/.Renviron
-          echo 'options(download.file.method = "libcurl")' >> ~/.Rprofile
           Rscript -e 'cat("GITHUB_PAT configured:", nchar(Sys.getenv("GITHUB_PAT")) > 0, "\n")'
 
-      - name: Debug GitHub API access
-        run: |
-          echo "=== Testing curl directly ==="
-          curl -s -o /dev/null -w "%{http_code}" -H "Authorization: token ${GITHUB_PAT}" https://api.github.com/repos/cornball-ai/tts.api
-          echo ""
-          echo "=== Testing with verbose ==="
-          curl -v -H "Authorization: token ${GITHUB_PAT}" https://api.github.com/repos/cornball-ai/tts.api 2>&1 | head -30
-          echo "=== R session info ==="
-          Rscript -e 'sessionInfo(); cat("GITHUB_PAT length:", nchar(Sys.getenv("GITHUB_PAT")), "\n"); cat("download.file.method:", getOption("download.file.method"), "\n")'
-
-      - name: Update remotes
-        run: Rscript -e 'install.packages("remotes")'
-
-      - name: Debug remotes auth
-        run: |
-          Rscript -e '
-          library(remotes)
-          cat("remotes version:", as.character(packageVersion("remotes")), "\n")
-          cat("GITHUB_PAT in R:", nchar(Sys.getenv("GITHUB_PAT")), "chars\n")
-          # Try to get github token
-          token <- tryCatch(remotes:::github_pat(), error = function(e) paste("ERROR:", e$message))
-          cat("remotes github_pat():", if(is.character(token)) nchar(token) else token, "\n")
-          # Try direct install with verbose
-          tryCatch({
-            remotes::install_github("cornball-ai/tts.api", quiet = FALSE, upgrade = "never")
-          }, error = function(e) {
-            cat("Install error:", e$message, "\n")
-          })
-          '
-
       - name: Dependencies
-        run: ./run.sh install_all
+        run: ./run.sh install_deps
 
       - name: Test
         run: ./run.sh run_tests
