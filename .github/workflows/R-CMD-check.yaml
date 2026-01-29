@@ -30,9 +30,10 @@ jobs:
       - name: Configure GitHub PAT
         run: |
           echo "GITHUB_PAT=${GITHUB_PAT}" >> ~/.Renviron
+          Rscript -e 'cat("GITHUB_PAT configured:", nchar(Sys.getenv("GITHUB_PAT")) > 0, "\n")'
 
       - name: Dependencies
-        run: ./run.sh install_deps
+        run: ./run.sh install_all
 
       - name: Test
         run: ./run.sh run_tests
