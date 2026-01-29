@@ -33,6 +33,9 @@ jobs:
           echo 'options(download.file.method = "libcurl")' >> ~/.Rprofile
           Rscript -e 'cat("GITHUB_PAT configured:", nchar(Sys.getenv("GITHUB_PAT")) > 0, "\n")'
 
+      - name: Update remotes
+        run: Rscript -e 'install.packages("remotes")'
+
       - name: Dependencies
         run: ./run.sh install_all
 
