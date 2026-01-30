@@ -85,14 +85,6 @@ app_server <- function(
     }
   }, ignoreInit = TRUE)
 
-  shiny::observeEvent(input$fal_key, {
-    if (input$backend == "fal" && nzchar(input$fal_key)) {
-      if (requireNamespace("fal.api", quietly = TRUE)) {
-        fal.api::set_fal_key(input$fal_key)
-      }
-    }
-  }, ignoreInit = TRUE)
-
   shiny::observeEvent(input$chatterbox_url, {
     if (input$backend == "chatterbox" && nzchar(input$chatterbox_url)) {
       tts.api::set_tts_base(input$chatterbox_url)
@@ -103,6 +95,57 @@ app_server <- function(
     if (input$backend == "qwen3" && nzchar(input$qwen3_url)) {
       tts.api::set_tts_base(input$qwen3_url)
     }
+  }, ignoreInit = TRUE)
+
+  # Handle voice upload - upload to library and refresh list
+  shiny::observeEvent(input$voice_upload, {
+    upload <- input$voice_upload
+    if (is.null(upload)) return()
+
+    backend <- input$backend
+    if (!backend %in% c("chatterbox", "qwen3")) return()
+
+    # Get voice name from filename (without extension)
+    voice_name <- tools::file_path_sans_ext(upload$name)
+
+    output$upload_status <- shiny::renderUI({
+      shiny::tags$small(
+        class = "upload-status",
+        paste("Uploading", voice_name, "...")
+      )
+    })
+
+    tryCatch({
+      # Upload to voice library
+      tts.api::voice_upload(
+        voice_file = upload$datapath,
+        voice_name = voice_name
+      )
+
+      output$upload_status <- shiny::renderUI({
+        shiny::tags$small(
+          class = "upload-status success",
+          paste("Uploaded:", voice_name)
+        )
+      })
+
+      # Refresh voice list
+      voices_data <- get_voices_for_backend(backend)
+      shiny::updateSelectInput(
+        session,
+        "voice",
+        choices = voices_data$choices,
+        selected = voice_name  # Select the newly uploaded voice
+      )
+
+    }, error = function(e) {
+      output$upload_status <- shiny::renderUI({
+        shiny::tags$small(
+          class = "upload-status error",
+          paste("Error:", conditionMessage(e))
+        )
+      })
+    })
   }, ignoreInit = TRUE)
 
   # Generate speech
@@ -125,22 +168,6 @@ app_server <- function(
       backend <- input$backend
       model <- input$model
       format <- input$output_format
-
-      # Resolve voice reference for chatterbox/native backends
-      if (backend %in% c("chatterbox", "native")) {
-        # Check for user-uploaded voice reference
-        voice_ref <- input$voice_reference
-        if (!is.null(voice_ref) && nzchar(voice_ref$datapath)) {
-          voice <- voice_ref$datapath
-        } else if (voice == "reference") {
-          # Use bundled JFK sample as default
-          voice <- system.file("audio/jfk.wav", package = "cornfab")
-          if (voice == "") {
-            # Dev mode fallback
-            voice <- "inst/audio/jfk.wav"
-          }
-        }
-      }
 
       # Create temp file
       tmp_file <- tempfile(fileext = paste0(".", format))
@@ -187,7 +214,7 @@ app_server <- function(
       }
 
       # Call speech function
-      do.call(tts.api::speech, params)
+      do.call(tts.api::tts, params)
 
       # Read the audio data
       audio_bytes <- readBin(tmp_file, "raw", file.info(tmp_file)$size)
@@ -200,7 +227,13 @@ app_server <- function(
         voice = voice,
         backend = backend,
         model = model,
-        format = format
+        format = format,
+        speed = input$speed,
+        exaggeration = input$exaggeration,
+        cfg_weight = input$cfg_weight,
+        stability = input$stability,
+        similarity = input$similarity,
+        seed = input$seed
       ))
 
       status_msg(sprintf("Done. Generated %s bytes of audio.", length(audio_bytes)))
@@ -221,11 +254,21 @@ app_server <- function(
     data <- audio_data()
     if (is.null(gen) || is.null(data)) return()
 
+    # Build params list (only non-default values)
+    params <- list()
+    if (!is.null(gen$speed) && gen$speed != 1.0) params$speed <- gen$speed
+    if (!is.null(gen$exaggeration)) params$exaggeration <- gen$exaggeration
+    if (!is.null(gen$cfg_weight)) params$cfg_weight <- gen$cfg_weight
+    if (!is.null(gen$stability)) params$stability <- gen$stability
+    if (!is.null(gen$similarity)) params$similarity <- gen$similarity
+    if (!is.null(gen$seed) && !is.na(gen$seed)) params$seed <- gen$seed
+
     entry <- create_history_entry(
       text = gen$text,
       voice = gen$voice,
       backend = gen$backend,
-      model = gen$model
+      model = gen$model,
+      params = if (length(params) > 0) params else NULL
     )
 
     # Save audio file
@@ -273,7 +316,7 @@ app_server <- function(
         shiny::div(
           class = "history-item-header",
           shiny::span(class = "history-timestamp", format_timestamp(entry$timestamp)),
-          shiny::span(class = "history-backend", entry$backend),
+          shiny::span(class = "history-backend", backend_label(entry$backend)),
           shiny::tags$button(
             class = "history-delete-btn",
             onclick = sprintf(
@@ -286,7 +329,14 @@ app_server <- function(
         shiny::div(
           class = "history-preview",
           truncate_text(entry$text, 60)
-        )
+        ),
+        # Show params if any
+        if (!is.null(entry$params) && length(entry$params) > 0) {
+          shiny::div(
+            class = "history-params",
+            paste(names(entry$params), "=", unlist(entry$params), collapse = ", ")
+          )
+        }
       )
     })
 
@@ -316,7 +366,13 @@ app_server <- function(
         voice = entry$voice,
         backend = entry$backend,
         model = entry$model,
-        format = tools::file_ext(entry$audio_file)
+        format = tools::file_ext(entry$audio_file),
+        speed = entry$params$speed,
+        exaggeration = entry$params$exaggeration,
+        cfg_weight = entry$params$cfg_weight,
+        stability = entry$params$stability,
+        similarity = entry$params$similarity,
+        seed = entry$params$seed
       ))
     }
 
@@ -411,11 +467,33 @@ app_server <- function(
     gen <- last_generation()
     if (is.null(gen)) return("No generation yet.")
 
+    # Build params string
+    params_str <- ""
+    if (!is.null(gen$speed) && gen$speed != 1.0) {
+      params_str <- paste0(params_str, "Speed: ", gen$speed, "\n")
+    }
+    if (!is.null(gen$exaggeration)) {
+      params_str <- paste0(params_str, "Exaggeration: ", gen$exaggeration, "\n")
+    }
+    if (!is.null(gen$cfg_weight)) {
+      params_str <- paste0(params_str, "CFG Weight: ", gen$cfg_weight, "\n")
+    }
+    if (!is.null(gen$stability)) {
+      params_str <- paste0(params_str, "Stability: ", gen$stability, "\n")
+    }
+    if (!is.null(gen$similarity)) {
+      params_str <- paste0(params_str, "Similarity: ", gen$similarity, "\n")
+    }
+    if (!is.null(gen$seed) && !is.na(gen$seed)) {
+      params_str <- paste0(params_str, "Seed: ", gen$seed, "\n")
+    }
+
     paste0(
-      "Backend: ", gen$backend, "\n",
+      "Backend: ", backend_label(gen$backend), "\n",
       "Voice: ", gen$voice, "\n",
       if (!is.null(gen$model) && nzchar(gen$model)) paste0("Model: ", gen$model, "\n") else "",
-      "Format: ", gen$format
+      "Format: ", gen$format,
+      if (nzchar(params_str)) paste0("\n\n", params_str) else ""
     )
   })
 
@@ -439,6 +517,18 @@ app_server <- function(
       }
     }
   )
+}
+
+# Get display label for backend
+backend_label <- function(backend) {
+  labels <- c(
+    chatterbox = "Chatterbox (container)",
+    native = "Chatterbox (native)",
+    qwen3 = "Qwen3-TTS (container)",
+    openai = "OpenAI TTS",
+    elevenlabs = "ElevenLabs"
+  )
+  if (backend %in% names(labels)) labels[[backend]] else backend
 }
 
 # Detect available backends
@@ -475,12 +565,6 @@ detect_backends <- function() {
     backends <- c(backends, "ElevenLabs" = "elevenlabs")
   }
 
-  # Check for fal.ai
-  if (nzchar(Sys.getenv("FAL_KEY", "")) &&
-      requireNamespace("fal.api", quietly = TRUE)) {
-    backends <- c(backends, "fal.ai" = "fal")
-  }
-
   backends
 }
 
@@ -510,11 +594,6 @@ configure_backend <- function(
     if (nzchar(key)) {
       tts.api::set_elevenlabs_key(key)
     }
-  } else if (backend == "fal") {
-    key <- Sys.getenv("FAL_KEY", "")
-    if (nzchar(key) && requireNamespace("fal.api", quietly = TRUE)) {
-      fal.api::set_fal_key(key)
-    }
   }
 }
 
@@ -533,15 +612,6 @@ get_models_for_backend <- function(backend) {
         "English v1" = "eleven_monolingual_v1"
       ),
       default = "eleven_multilingual_v2"
-    )
-  } else if (backend == "fal") {
-    list(
-      choices = c(
-        "F5-TTS" = "fal-ai/f5-tts",
-        "Dia TTS" = "fal-ai/dia-tts",
-        "Orpheus TTS" = "fal-ai/orpheus-tts"
-      ),
-      default = "fal-ai/f5-tts"
     )
   } else if (backend == "qwen3") {
     list(
@@ -563,11 +633,16 @@ get_voices_for_backend <- function(backend) {
     list(
       choices = c(
         "Alloy" = "alloy",
+        "Ash" = "ash",
+        "Ballad" = "ballad",
+        "Coral" = "coral",
         "Echo" = "echo",
         "Fable" = "fable",
-        "Onyx" = "onyx",
         "Nova" = "nova",
-        "Shimmer" = "shimmer"
+        "Onyx" = "onyx",
+        "Sage" = "sage",
+        "Shimmer" = "shimmer",
+        "Verse" = "verse"
       ),
       default = "nova"
     )
@@ -585,11 +660,6 @@ get_voices_for_backend <- function(backend) {
         "Sam" = "yoZ06aMxZJJ28mfd3POQ"
       ),
       default = "21m00Tcm4TlvDq8ikWAM"
-    )
-  } else if (backend == "fal") {
-    list(
-      choices = c("Default" = "default"),
-      default = "default"
     )
   } else if (backend == "qwen3") {
     # Qwen3-TTS built-in voices
@@ -610,10 +680,12 @@ get_voices_for_backend <- function(backend) {
   } else if (backend == "chatterbox") {
     # Try to fetch voices from Chatterbox container
     tryCatch({
-      voices <- tts.api::voices()
-      if (length(voices) > 0) {
-        choices <- stats::setNames(voices, voices)
-        list(choices = choices, default = voices[1])
+      result <- tts.api::voices()
+      # voices() returns list with $voices data.frame and $count
+      voice_names <- result$voices$name
+      if (length(voice_names) > 0) {
+        choices <- stats::setNames(voice_names, voice_names)
+        list(choices = choices, default = voice_names[1])
       } else {
         list(
           choices = c("Default" = "default"),

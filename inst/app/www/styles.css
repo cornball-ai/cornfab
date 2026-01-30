@@ -517,3 +517,35 @@ body {
   background: var(--accent);
   color: white;
 }
+
+/* Voice upload section */
+.voice-upload-section {
+  margin-top: 0.5rem;
+}
+
+.voice-upload-section .form-group {
+  margin-bottom: 0.25rem;
+}
+
+.upload-status {
+  display: block;
+  font-size: 0.75rem;
+  color: var(--text-muted);
+  padding: 0.25rem 0;
+}
+
+.upload-status.success {
+  color: #10b981;
+}
+
+.upload-status.error {
+  color: var(--accent);
+}
+
+/* History params */
+.history-params {
+  font-size: 0.7rem;
+  color: var(--text-muted);
+  margin-top: 0.25rem;
+  font-family: 'JetBrains Mono', monospace;
+}

@@ -101,16 +101,6 @@ app_ui <- function() {
           ),
           shiny::div(
             class = "input-controls",
-            shiny::div(
-              class = "voice-clone-section",
-              shiny::fileInput(
-                "voice_reference",
-                NULL,
-                accept = c(".wav", ".mp3", ".m4a", ".ogg", ".flac"),
-                placeholder = "Voice reference (optional)",
-                width = "100%"
-              )
-            ),
             shiny::actionButton(
               "generate",
               "Generate Speech",
@@ -197,7 +187,22 @@ app_ui <- function() {
               class = "btn-icon btn-sm"
             )
           ),
-          shiny::uiOutput("voice_select")
+          shiny::uiOutput("voice_select"),
+          # Voice upload (for chatterbox/qwen3 containers)
+          shiny::conditionalPanel(
+            condition = "input.backend == 'chatterbox' || input.backend == 'qwen3'",
+            shiny::div(
+              class = "voice-upload-section",
+              shiny::fileInput(
+                "voice_upload",
+                "Add Voice",
+                accept = c(".wav", ".mp3", ".m4a", ".ogg", ".flac"),
+                buttonLabel = "Browse",
+                width = "100%"
+              ),
+              shiny::uiOutput("upload_status")
+            )
+          )
         ),
 
         # Model section (conditional)
@@ -326,16 +331,6 @@ app_ui <- function() {
                   "elevenlabs_key",
                   "ElevenLabs API Key",
                   value = Sys.getenv("ELEVENLABS_API_KEY", ""),
-                  width = "100%"
-                )
-              ),
-              # fal.ai key
-              shiny::conditionalPanel(
-                condition = "input.backend == 'fal'",
-                shiny::passwordInput(
-                  "fal_key",
-                  "fal.ai API Key",
-                  value = Sys.getenv("FAL_KEY", ""),
                   width = "100%"
                 )
               )

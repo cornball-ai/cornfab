@@ -14,7 +14,6 @@ Imports:
     tts.api
 Suggests:
     chatterbox,
-    fal.api,
     pkgload,
     tinytest
 Remotes:

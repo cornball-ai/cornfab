@@ -60,7 +60,8 @@ create_history_entry <- function(
   voice,
   backend,
   model = NULL,
-  audio_file = NULL
+  audio_file = NULL,
+  params = NULL
 ) {
   timestamp <- Sys.time()
   id <- paste0(
@@ -76,7 +77,8 @@ create_history_entry <- function(
     voice = voice,
     backend = backend,
     model = model,
-    audio_file = audio_file
+    audio_file = audio_file,
+    params = params
   )
 }
 

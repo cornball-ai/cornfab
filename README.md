@@ -175,4 +175,3 @@ r -e 'library(cornfab); run_app()'
 
 - [tts.api](https://github.com/cornball-ai/tts.api) - R package for TTS APIs
 - [earshot](https://github.com/cornball-ai/earshot) - Speech-to-text Shiny app
-- [cornyverse](https://github.com/cornball-ai/cornyverse) - Cornball AI ecosystem
