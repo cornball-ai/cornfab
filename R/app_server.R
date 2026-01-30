@@ -97,13 +97,16 @@ app_server <- function(
     }
   }, ignoreInit = TRUE)
 
+  # Pending voice upload (for qwen3 folder confirmation)
+  pending_upload <- shiny::reactiveVal(NULL)
+
   # Handle voice upload - upload to library and refresh list
   shiny::observeEvent(input$voice_upload, {
     upload <- input$voice_upload
     if (is.null(upload)) return()
 
     backend <- input$backend
-    if (!backend %in% c("chatterbox", "qwen3")) return()
+    if (!backend %in% c("chatterbox", "qwen3", "native")) return()
 
     # Get voice name from filename (without extension)
     voice_name <- tools::file_path_sans_ext(upload$name)
@@ -115,37 +118,45 @@ app_server <- function(
       )
     })
 
-    tryCatch({
-      # Upload to voice library
-      tts.api::voice_upload(
-        voice_file = upload$datapath,
-        voice_name = voice_name
-      )
+    # All backends use local voice storage (~/.cornfab/voices/)
+    voices_dir <- file.path(Sys.getenv("HOME"), ".cornfab", "voices")
 
-      output$upload_status <- shiny::renderUI({
-        shiny::tags$small(
-          class = "upload-status success",
-          paste("Uploaded:", voice_name)
+    if (!dir.exists(voices_dir)) {
+      # Need to create folder - ask for confirmation
+      pending_upload(list(
+        datapath = upload$datapath,
+        name = upload$name,
+        voice_name = voice_name,
+        backend = backend
+      ))
+      shiny::showModal(shiny::modalDialog(
+        title = "Create Voice Folder",
+        shiny::p(paste0(
+          "Voice files will be stored in: ", voices_dir
+        )),
+        shiny::p("Create this folder?"),
+        footer = shiny::tagList(
+          shiny::modalButton("Cancel"),
+          shiny::actionButton("confirm_create_folder", "Create", class = "btn-primary")
         )
-      })
+      ))
+    } else {
+      # Folder exists, save directly
+      save_local_voice(upload$datapath, voice_name, voices_dir, backend, output, session)
+    }
+  }, ignoreInit = TRUE)
 
-      # Refresh voice list
-      voices_data <- get_voices_for_backend(backend)
-      shiny::updateSelectInput(
-        session,
-        "voice",
-        choices = voices_data$choices,
-        selected = voice_name  # Select the newly uploaded voice
-      )
+  # Handle folder creation confirmation
+shiny::observeEvent(input$confirm_create_folder, {
+    shiny::removeModal()
+    upload <- pending_upload()
+    if (is.null(upload)) return()
 
-    }, error = function(e) {
-      output$upload_status <- shiny::renderUI({
-        shiny::tags$small(
-          class = "upload-status error",
-          paste("Error:", conditionMessage(e))
-        )
-      })
-    })
+    voices_dir <- file.path(Sys.getenv("HOME"), ".cornfab", "voices")
+    dir.create(voices_dir, recursive = TRUE, showWarnings = FALSE)
+
+    save_local_voice(upload$datapath, upload$voice_name, voices_dir, upload$backend, output, session)
+    pending_upload(NULL)
   }, ignoreInit = TRUE)
 
   # Generate speech
@@ -157,7 +168,15 @@ app_server <- function(
       return()
     }
 
-    status_msg("Generating speech...")
+    backend <- input$backend
+
+    # Show appropriate status message
+    if (backend == "native") {
+      status_msg("Loading model and generating speech (first run may take longer)...")
+    } else {
+      status_msg("Generating speech...")
+    }
+
     audio_data(NULL)
     audio_file(NULL)
     last_generation(NULL)
@@ -165,9 +184,21 @@ app_server <- function(
     tryCatch({
       # Build parameters
       voice <- input$voice
-      backend <- input$backend
       model <- input$model
       format <- input$output_format
+
+      # Resolve custom voice to file path
+      is_custom_voice <- grepl("^custom:", voice)
+      if (is_custom_voice) {
+        voice_name <- sub("^custom:", "", voice)
+        voices_dir <- file.path(Sys.getenv("HOME"), ".cornfab", "voices")
+        voice_files <- list.files(voices_dir, pattern = paste0("^", voice_name, "\\."),
+                                  full.names = TRUE, ignore.case = TRUE)
+        if (length(voice_files) == 0) {
+          stop("Voice file not found: ", voice_name)
+        }
+        voice <- voice_files[1]  # Use the actual file path
+      }
 
       # Create temp file
       tmp_file <- tempfile(fileext = paste0(".", format))
@@ -211,10 +242,48 @@ app_server <- function(
         if (!is.null(input$similarity)) {
           params$similarity_boost <- input$similarity
         }
+      } else if (backend == "qwen3") {
+        if (!is.null(input$language) && input$language != "English") {
+          params$language <- input$language
+        }
+        if (!is.null(input$instruct) && nzchar(input$instruct)) {
+          params$instructions <- input$instruct
+        }
       }
 
-      # Call speech function
-      do.call(tts.api::tts, params)
+      # Handle custom voices and backend-specific generation
+      if (is_custom_voice && backend == "qwen3") {
+        # Qwen3 custom voice: use speech_clone with x_vector_only
+        clone_params <- list(
+          input = text,
+          voice_file = voice,  # Already resolved to file path
+          file = tmp_file,
+          backend = "qwen3",
+          x_vector_only = TRUE
+        )
+        if (!is.null(params$language)) clone_params$language <- params$language
+        if (!is.null(params$speed)) clone_params$speed <- params$speed
+        if (!is.null(params$seed)) clone_params$seed <- params$seed
+
+        do.call(tts.api::speech_clone, clone_params)
+      } else if (is_custom_voice && backend == "chatterbox") {
+        # Chatterbox custom voice: use speech_clone
+        clone_params <- list(
+          input = text,
+          voice_file = voice,  # Already resolved to file path
+          file = tmp_file,
+          backend = "chatterbox"
+        )
+        if (!is.null(params$exaggeration)) clone_params$exaggeration <- params$exaggeration
+        if (!is.null(params$cfg_weight)) clone_params$cfg_weight <- params$cfg_weight
+        if (!is.null(params$speed)) clone_params$speed <- params$speed
+        if (!is.null(params$seed)) clone_params$seed <- params$seed
+
+        do.call(tts.api::speech_clone, clone_params)
+      } else {
+        # Regular tts (including native with custom voice, which uses file path directly)
+        do.call(tts.api::tts, params)
+      }
 
       # Read the audio data
       audio_bytes <- readBin(tmp_file, "raw", file.info(tmp_file)$size)
@@ -233,6 +302,8 @@ app_server <- function(
         cfg_weight = input$cfg_weight,
         stability = input$stability,
         similarity = input$similarity,
+        language = input$language,
+        instruct = input$instruct,
         seed = input$seed
       ))
 
@@ -261,6 +332,8 @@ app_server <- function(
     if (!is.null(gen$cfg_weight)) params$cfg_weight <- gen$cfg_weight
     if (!is.null(gen$stability)) params$stability <- gen$stability
     if (!is.null(gen$similarity)) params$similarity <- gen$similarity
+    if (!is.null(gen$language) && gen$language != "English") params$language <- gen$language
+    if (!is.null(gen$instruct) && nzchar(gen$instruct)) params$instruct <- gen$instruct
     if (!is.null(gen$seed) && !is.na(gen$seed)) params$seed <- gen$seed
 
     entry <- create_history_entry(
@@ -372,6 +445,8 @@ app_server <- function(
         cfg_weight = entry$params$cfg_weight,
         stability = entry$params$stability,
         similarity = entry$params$similarity,
+        language = entry$params$language,
+        instruct = entry$params$instruct,
         seed = entry$params$seed
       ))
     }
@@ -467,23 +542,40 @@ app_server <- function(
     gen <- last_generation()
     if (is.null(gen)) return("No generation yet.")
 
-    # Build params string
+    # Build params string based on backend
     params_str <- ""
+    backend <- gen$backend
+
+    # Speed is common to most backends
     if (!is.null(gen$speed) && gen$speed != 1.0) {
       params_str <- paste0(params_str, "Speed: ", gen$speed, "\n")
     }
-    if (!is.null(gen$exaggeration)) {
-      params_str <- paste0(params_str, "Exaggeration: ", gen$exaggeration, "\n")
+
+    # Backend-specific params
+    if (backend %in% c("chatterbox", "native")) {
+      if (!is.null(gen$exaggeration)) {
+        params_str <- paste0(params_str, "Exaggeration: ", gen$exaggeration, "\n")
+      }
+      if (!is.null(gen$cfg_weight)) {
+        params_str <- paste0(params_str, "CFG Weight: ", gen$cfg_weight, "\n")
+      }
+    } else if (backend == "elevenlabs") {
+      if (!is.null(gen$stability)) {
+        params_str <- paste0(params_str, "Stability: ", gen$stability, "\n")
+      }
+      if (!is.null(gen$similarity)) {
+        params_str <- paste0(params_str, "Similarity: ", gen$similarity, "\n")
+      }
+    } else if (backend == "qwen3") {
+      if (!is.null(gen$language) && gen$language != "English") {
+        params_str <- paste0(params_str, "Language: ", gen$language, "\n")
+      }
+      if (!is.null(gen$instruct) && nzchar(gen$instruct)) {
+        params_str <- paste0(params_str, "Instructions: ", gen$instruct, "\n")
+      }
     }
-    if (!is.null(gen$cfg_weight)) {
-      params_str <- paste0(params_str, "CFG Weight: ", gen$cfg_weight, "\n")
-    }
-    if (!is.null(gen$stability)) {
-      params_str <- paste0(params_str, "Stability: ", gen$stability, "\n")
-    }
-    if (!is.null(gen$similarity)) {
-      params_str <- paste0(params_str, "Similarity: ", gen$similarity, "\n")
-    }
+
+    # Seed is common
     if (!is.null(gen$seed) && !is.na(gen$seed)) {
       params_str <- paste0(params_str, "Seed: ", gen$seed, "\n")
     }
@@ -627,6 +719,58 @@ get_models_for_backend <- function(backend) {
   }
 }
 
+# Save voice file locally (for qwen3, native, and chatterbox)
+save_local_voice <- function(datapath, voice_name, voices_dir, backend, output, session) {
+  # Determine extension from original file
+  ext <- tolower(tools::file_ext(datapath))
+  if (!nzchar(ext)) ext <- "wav"
+
+  dest_file <- file.path(voices_dir, paste0(voice_name, ".", ext))
+
+  tryCatch({
+    file.copy(datapath, dest_file, overwrite = TRUE)
+
+    output$upload_status <- shiny::renderUI({
+      shiny::tags$small(
+        class = "upload-status success",
+        paste("Saved:", voice_name)
+      )
+    })
+
+    # Refresh voice list
+    voices_data <- get_voices_for_backend(backend)
+    shiny::updateSelectInput(
+      session,
+      "voice",
+      choices = voices_data$choices,
+      selected = paste0("custom:", voice_name)
+    )
+
+  }, error = function(e) {
+    output$upload_status <- shiny::renderUI({
+      shiny::tags$small(
+        class = "upload-status error",
+        paste("Error:", conditionMessage(e))
+      )
+    })
+  })
+}
+
+# Get local custom voices
+get_local_voices <- function() {
+  voices_dir <- file.path(Sys.getenv("HOME"), ".cornfab", "voices")
+  if (!dir.exists(voices_dir)) return(character(0))
+
+  files <- list.files(voices_dir, pattern = "\\.(wav|mp3|m4a|ogg|flac)$", ignore.case = TRUE)
+  if (length(files) == 0) return(character(0))
+
+  voice_names <- tools::file_path_sans_ext(files)
+  stats::setNames(
+    paste0("custom:", voice_names),
+    paste0(voice_names, " (custom)")
+  )
+}
+
 # Get voices for backend
 get_voices_for_backend <- function(backend) {
   if (backend == "openai") {
@@ -662,47 +806,38 @@ get_voices_for_backend <- function(backend) {
       default = "21m00Tcm4TlvDq8ikWAM"
     )
   } else if (backend == "qwen3") {
-    # Qwen3-TTS built-in voices
+    # Qwen3-TTS built-in voices + local custom voices
+    builtin <- c(
+      "Vivian" = "Vivian",
+      "Serena" = "Serena",
+      "Uncle Fu" = "Uncle_Fu",
+      "Dylan" = "Dylan",
+      "Eric" = "Eric",
+      "Ryan" = "Ryan",
+      "Aiden" = "Aiden",
+      "Ono Anna" = "Ono_Anna",
+      "Sohee" = "Sohee"
+    )
+    custom <- get_local_voices()
     list(
-      choices = c(
-        "Vivian" = "Vivian",
-        "Serena" = "Serena",
-        "Uncle Fu" = "Uncle_Fu",
-        "Dylan" = "Dylan",
-        "Eric" = "Eric",
-        "Ryan" = "Ryan",
-        "Aiden" = "Aiden",
-        "Ono Anna" = "Ono_Anna",
-        "Sohee" = "Sohee"
-      ),
+      choices = c(builtin, custom),
       default = "Vivian"
     )
   } else if (backend == "chatterbox") {
-    # Try to fetch voices from Chatterbox container
-    tryCatch({
-      result <- tts.api::voices()
-      # voices() returns list with $voices data.frame and $count
-      voice_names <- result$voices$name
-      if (length(voice_names) > 0) {
-        choices <- stats::setNames(voice_names, voice_names)
-        list(choices = choices, default = voice_names[1])
-      } else {
-        list(
-          choices = c("Default" = "default"),
-          default = "default"
-        )
-      }
-    }, error = function(e) {
-      list(
-        choices = c("Default" = "default"),
-        default = "default"
-      )
-    })
-  } else if (backend == "native") {
-    # Native chatterbox uses reference audio file
+    # Local custom voices (shared with other backends)
+    custom <- get_local_voices()
     list(
-      choices = c("JFK Sample" = "reference"),
-      default = "reference"
+      choices = c(custom, "Default" = "default"),
+      default = if (length(custom) > 0) custom[1] else "default"
+    )
+  } else if (backend == "native") {
+    # Native chatterbox: JFK sample + local custom voices
+    jfk_path <- system.file("audio", "jfk.wav", package = "cornfab")
+    builtin <- c("JFK Sample" = jfk_path)
+    custom <- get_local_voices()
+    list(
+      choices = c(builtin, custom),
+      default = jfk_path
     )
   } else {
     list(

@@ -188,9 +188,9 @@ app_ui <- function() {
             )
           ),
           shiny::uiOutput("voice_select"),
-          # Voice upload (for chatterbox/qwen3 containers)
+          # Voice upload (chatterbox container, qwen3, and native)
           shiny::conditionalPanel(
-            condition = "input.backend == 'chatterbox' || input.backend == 'qwen3'",
+            condition = "input.backend == 'chatterbox' || input.backend == 'qwen3' || input.backend == 'native'",
             shiny::div(
               class = "voice-upload-section",
               shiny::fileInput(
@@ -232,7 +232,7 @@ app_ui <- function() {
                 shiny::sliderInput(
                   "exaggeration",
                   "Exaggeration",
-                  min = 0,
+                  min = 0.25,
                   max = 1,
                   value = 0.5,
                   step = 0.05,
@@ -267,6 +267,34 @@ app_ui <- function() {
                   max = 1,
                   value = 0.75,
                   step = 0.05,
+                  width = "100%"
+                )
+              ),
+              # Qwen3-specific
+              shiny::conditionalPanel(
+                condition = "input.backend == 'qwen3'",
+                shiny::selectInput(
+                  "language",
+                  "Language",
+                  choices = c(
+                    "English" = "English",
+                    "Spanish" = "Spanish",
+                    "Chinese" = "Chinese",
+                    "Japanese" = "Japanese",
+                    "Korean" = "Korean",
+                    "French" = "French",
+                    "German" = "German",
+                    "Italian" = "Italian",
+                    "Portuguese" = "Portuguese",
+                    "Russian" = "Russian"
+                  ),
+                  selected = "English",
+                  width = "100%"
+                ),
+                shiny::textInput(
+                  "instruct",
+                  "Voice Instructions",
+                  placeholder = "e.g., Speak cheerfully",
                   width = "100%"
                 )
               ),
