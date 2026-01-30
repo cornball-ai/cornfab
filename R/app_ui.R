@@ -15,32 +15,13 @@ app_ui <- function() {
   shiny::addResourcePath("www", www_path)
 
   bslib::page_fillable(
-    theme = bslib::bs_theme(
-      version = 5,
-      primary = "#6366f1",
-      "enable-rounded" = TRUE
-    ),
+    theme = bslib::bs_theme(version = 5, bootswatch = "flatly"),
     title = "cornfab",
     padding = 0,
 
     shiny::tags$head(
-      shiny::tags$link(
-        rel = "stylesheet",
-        type = "text/css",
-        href = "www/styles.css"
-      ),
-      shiny::tags$link(
-        rel = "preconnect",
-        href = "https://fonts.googleapis.com"
-      ),
-      shiny::tags$link(
-        rel = "stylesheet",
-        href = paste0(
-          "https://fonts.googleapis.com/css2?",
-          "family=Inter:wght@400;500;600&",
-          "family=JetBrains+Mono&display=swap"
-        )
-      )
+      shiny::tags$link(rel = "icon", type = "image/png", href = "www/logo.png"),
+      shiny::tags$link(rel = "stylesheet", type = "text/css", href = "www/styles.css")
     ),
 
     # Header
@@ -310,7 +291,20 @@ app_ui <- function() {
                   "Chatterbox URL",
                   value = Sys.getenv(
                     "TTS_API_BASE",
-                    "http://localhost:4123"
+                    "http://localhost:7810"
+                  ),
+                  width = "100%"
+                )
+              ),
+              # Qwen3-TTS URL
+              shiny::conditionalPanel(
+                condition = "input.backend == 'qwen3'",
+                shiny::textInput(
+                  "qwen3_url",
+                  "Qwen3-TTS URL",
+                  value = Sys.getenv(
+                    "QWEN3_TTS_BASE",
+                    "http://localhost:7811"
                   ),
                   width = "100%"
                 )
