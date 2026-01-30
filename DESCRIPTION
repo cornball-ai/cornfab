@@ -1,17 +1,20 @@
 Package: cornfab
-Title: Text-to-Speech Shiny App
+Title: Text-to-Speech 'Shiny' App
 Version: 0.1.0
 Authors@R: person("Troy", "Hernandez", role = c("aut", "cre"),
                   email = "troy@cornball.ai")
-Description: A Shiny application for generating speech from text using tts.api.
+Description: A 'Shiny' application for generating speech from text using 'tts.api'.
     Enter text, select a voice and backend, and generate audio files.
 License: MIT + file LICENSE
 Encoding: UTF-8
 Imports:
     bslib,
+    jsonlite,
     shiny,
     tts.api
 Suggests:
+    chatterbox,
+    fal.api,
     pkgload,
     tinytest
 Remotes:

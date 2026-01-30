@@ -3,3 +3,5 @@
 ^app\.R$
 ^\.github$
 ^CLAUDE\.md$
+^fyi\.md$
+^README\.md$

@@ -126,6 +126,22 @@ app_server <- function(
       model <- input$model
       format <- input$output_format
 
+      # Resolve voice reference for chatterbox/native backends
+      if (backend %in% c("chatterbox", "native")) {
+        # Check for user-uploaded voice reference
+        voice_ref <- input$voice_reference
+        if (!is.null(voice_ref) && nzchar(voice_ref$datapath)) {
+          voice <- voice_ref$datapath
+        } else if (voice == "reference") {
+          # Use bundled JFK sample as default
+          voice <- system.file("audio/jfk.wav", package = "cornfab")
+          if (voice == "") {
+            # Dev mode fallback
+            voice <- "inst/audio/jfk.wav"
+          }
+        }
+      }
+
       # Create temp file
       tmp_file <- tempfile(fileext = paste0(".", format))
 
@@ -443,10 +459,10 @@ detect_backends <- function() {
   }, error = function(e) FALSE)
 
   if (qwen3_available) {
-    backends <- c(backends, "Qwen3-TTS" = "qwen3")
+    backends <- c(backends, "Qwen3-TTS (container)" = "qwen3")
   } else {
     # Still add it as option, user can configure URL
-    backends <- c(backends, "Qwen3-TTS" = "qwen3")
+    backends <- c(backends, "Qwen3-TTS (container)" = "qwen3")
   }
 
   # Check for OpenAI API key
@@ -596,7 +612,7 @@ get_voices_for_backend <- function(backend) {
     tryCatch({
       voices <- tts.api::voices()
       if (length(voices) > 0) {
-        choices <- setNames(voices, voices)
+        choices <- stats::setNames(voices, voices)
         list(choices = choices, default = voices[1])
       } else {
         list(
@@ -613,7 +629,7 @@ get_voices_for_backend <- function(backend) {
   } else if (backend == "native") {
     # Native chatterbox uses reference audio file
     list(
-      choices = c("Reference file" = "reference"),
+      choices = c("JFK Sample" = "reference"),
       default = "reference"
     )
   } else {
