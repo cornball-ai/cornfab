@@ -35,7 +35,9 @@ run_app()  # Runs on port 7803
 
 ### Container Setup
 
-Chatterbox and Qwen3-TTS run as local Docker containers. You must **download models before running** the containers.
+Chatterbox and Qwen3-TTS run as local Docker containers. You must:
+1. **Download models** before running containers
+2. **Start containers manually** - cornfab does not auto-start containers
 
 #### Model Storage
 
