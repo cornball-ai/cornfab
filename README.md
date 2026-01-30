@@ -1,5 +1,7 @@
 # cornfab
 
+![cornfab](https://raw.githubusercontent.com/cornball-ai/cornfab/refs/heads/main/inst/app/www/cornfab.jpeg)
+
 Text-to-speech Shiny app for the Cornball AI ecosystem.
 
 ## Features
