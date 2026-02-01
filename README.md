@@ -171,12 +171,13 @@ Qwen3-TTS supports creating custom voices from natural language descriptions.
 
 ### VRAM Usage
 
-| Mode | Model | VRAM |
-|------|-------|------|
+| Mode | Models Loaded | VRAM |
+|------|---------------|------|
 | Built-in voices | CustomVoice | ~4GB |
-| Voice design | CustomVoice + VoiceDesign | ~9GB |
+| + Voice cloning | + Base | ~8GB |
+| + Voice design | + VoiceDesign | ~12.5GB |
 
-The VoiceDesign model loads on first use and stays in memory. Restart the container to unload.
+Models load on first use and stay in memory. Restart the container to unload.
 
 ### Recommended Workflow
 
