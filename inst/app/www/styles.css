@@ -549,3 +549,44 @@ body {
   margin-top: 0.25rem;
   font-family: 'JetBrains Mono', monospace;
 }
+
+/* Voice design section */
+.voice-design-toggle {
+  margin-bottom: 0.5rem;
+}
+
+.voice-design-toggle .form-check {
+  margin-bottom: 0;
+}
+
+.voice-design-toggle .form-check-label {
+  font-size: 0.8rem;
+  color: var(--text-secondary);
+}
+
+.voice-design-section {
+  margin-top: 0.5rem;
+}
+
+.voice-description-input {
+  font-family: 'Inter', sans-serif;
+  font-size: 0.875rem;
+  line-height: 1.5;
+  border: 1px solid var(--border-light);
+  border-radius: 8px;
+  padding: 0.625rem;
+  width: 100%;
+  resize: vertical;
+  min-height: 80px;
+}
+
+.voice-description-input:focus {
+  border-color: var(--primary);
+  box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.15);
+  outline: none;
+}
+
+.voice-description-input::placeholder {
+  color: var(--text-muted);
+  font-size: 0.8rem;
+}

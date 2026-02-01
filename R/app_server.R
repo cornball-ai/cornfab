@@ -251,8 +251,21 @@ shiny::observeEvent(input$confirm_create_folder, {
         }
       }
 
-      # Handle custom voices and backend-specific generation
-      if (is_custom_voice && backend == "qwen3") {
+      # Handle voice design, custom voices, and backend-specific generation
+      use_voice_design <- isTRUE(input$use_voice_design) && backend == "qwen3"
+      voice_desc <- input$voice_description
+
+      if (use_voice_design && !is.null(voice_desc) && nzchar(trimws(voice_desc))) {
+        # Qwen3 voice design: generate voice from description
+        design_params <- list(
+          input = text,
+          voice_description = voice_desc,
+          file = tmp_file
+        )
+        if (!is.null(params$language)) design_params$language <- params$language
+
+        do.call(tts.api::speech_design, design_params)
+      } else if (is_custom_voice && backend == "qwen3") {
         # Qwen3 custom voice: use speech_clone with x_vector_only
         clone_params <- list(
           input = text,
@@ -293,7 +306,8 @@ shiny::observeEvent(input$confirm_create_folder, {
       # Store generation info for history
       last_generation(list(
         text = text,
-        voice = voice,
+        voice = if (use_voice_design) "(designed)" else voice,
+        voice_description = if (use_voice_design) voice_desc else NULL,
         backend = backend,
         model = model,
         format = format,
@@ -334,6 +348,9 @@ shiny::observeEvent(input$confirm_create_folder, {
     if (!is.null(gen$similarity)) params$similarity <- gen$similarity
     if (!is.null(gen$language) && gen$language != "English") params$language <- gen$language
     if (!is.null(gen$instruct) && nzchar(gen$instruct)) params$instruct <- gen$instruct
+    if (!is.null(gen$voice_description) && nzchar(gen$voice_description)) {
+      params$voice_description <- gen$voice_description
+    }
     if (!is.null(gen$seed) && !is.na(gen$seed)) params$seed <- gen$seed
 
     entry <- create_history_entry(
@@ -437,6 +454,7 @@ shiny::observeEvent(input$confirm_create_folder, {
       last_generation(list(
         text = entry$text,
         voice = entry$voice,
+        voice_description = entry$params$voice_description,
         backend = entry$backend,
         model = entry$model,
         format = tools::file_ext(entry$audio_file),
@@ -572,6 +590,9 @@ shiny::observeEvent(input$confirm_create_folder, {
       }
       if (!is.null(gen$instruct) && nzchar(gen$instruct)) {
         params_str <- paste0(params_str, "Instructions: ", gen$instruct, "\n")
+      }
+      if (!is.null(gen$voice_description) && nzchar(gen$voice_description)) {
+        params_str <- paste0(params_str, "Voice Design: ", gen$voice_description, "\n")
       }
     }
 

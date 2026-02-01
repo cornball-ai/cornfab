@@ -187,10 +187,39 @@ app_ui <- function() {
               class = "btn-icon btn-sm"
             )
           ),
-          shiny::uiOutput("voice_select"),
-          # Voice upload (chatterbox container, qwen3, and native)
+          # Voice Design toggle (qwen3 only)
           shiny::conditionalPanel(
-            condition = "input.backend == 'chatterbox' || input.backend == 'qwen3' || input.backend == 'native'",
+            condition = "input.backend == 'qwen3'",
+            shiny::div(
+              class = "voice-design-toggle",
+              shiny::checkboxInput(
+                "use_voice_design",
+                "Design voice from description",
+                value = FALSE
+              )
+            )
+          ),
+          # Voice selector (hidden when voice design is active)
+          shiny::conditionalPanel(
+            condition = "!(input.backend == 'qwen3' && input.use_voice_design)",
+            shiny::uiOutput("voice_select")
+          ),
+          # Voice description textarea (qwen3 voice design mode)
+          shiny::conditionalPanel(
+            condition = "input.backend == 'qwen3' && input.use_voice_design",
+            shiny::div(
+              class = "voice-design-section",
+              shiny::tags$textarea(
+                id = "voice_description",
+                class = "form-control voice-description-input",
+                placeholder = "Describe the voice you want, e.g., 'A warm, friendly female voice with a slight British accent'",
+                rows = 3
+              )
+            )
+          ),
+          # Voice upload (chatterbox container, qwen3, and native) - hidden in design mode
+          shiny::conditionalPanel(
+            condition = "(input.backend == 'chatterbox' || input.backend == 'qwen3' || input.backend == 'native') && !(input.backend == 'qwen3' && input.use_voice_design)",
             shiny::div(
               class = "voice-upload-section",
               shiny::fileInput(
