@@ -381,6 +381,70 @@ shiny::observeEvent(input$confirm_create_folder, {
     status_msg("Saved to history.")
   })
 
+  # Save as voice button - show modal to get voice name
+  shiny::observeEvent(input$save_as_voice, {
+    if (is.null(audio_data())) {
+      status_msg("No audio to save as voice.")
+      return()
+    }
+
+    shiny::showModal(shiny::modalDialog(
+      title = "Save as Voice",
+      shiny::p("Save this audio as a reusable voice for cloning."),
+      shiny::textInput(
+        "new_voice_name",
+        "Voice Name",
+        placeholder = "e.g., warm-female, narrator"
+      ),
+      footer = shiny::tagList(
+        shiny::modalButton("Cancel"),
+        shiny::actionButton("confirm_save_voice", "Save", class = "btn-primary")
+      )
+    ))
+  })
+
+  # Confirm save as voice
+  shiny::observeEvent(input$confirm_save_voice, {
+    voice_name <- input$new_voice_name
+    if (is.null(voice_name) || !nzchar(trimws(voice_name))) {
+      status_msg("Please enter a voice name.")
+      return()
+    }
+
+    # Sanitize name (alphanumeric, dash, underscore only)
+    voice_name <- gsub("[^a-zA-Z0-9_-]", "_", trimws(voice_name))
+
+    voices_dir <- file.path(Sys.getenv("HOME"), ".cornfab", "voices")
+    if (!dir.exists(voices_dir)) {
+      dir.create(voices_dir, recursive = TRUE, showWarnings = FALSE)
+    }
+
+    # Determine format from last generation or default to wav
+    gen <- last_generation()
+    ext <- if (!is.null(gen$format)) gen$format else "wav"
+    dest_file <- file.path(voices_dir, paste0(voice_name, ".", ext))
+
+    tryCatch({
+      writeBin(audio_data(), dest_file)
+      shiny::removeModal()
+      status_msg(paste0("Saved voice: ", voice_name))
+
+      # Refresh voice list for current backend
+      backend <- input$backend
+      if (backend %in% c("chatterbox", "qwen3", "native")) {
+        voices_data <- get_voices_for_backend(backend)
+        shiny::updateSelectInput(
+          session,
+          "voice",
+          choices = voices_data$choices,
+          selected = paste0("custom:", voice_name)
+        )
+      }
+    }, error = function(e) {
+      status_msg(paste("Error saving voice:", conditionMessage(e)))
+    })
+  })
+
   # History list rendering
   output$history_list <- shiny::renderUI({
     hist <- history()

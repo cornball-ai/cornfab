@@ -9,6 +9,8 @@ Text-to-speech Shiny app for the Cornball AI ecosystem.
 - **Multi-backend TTS**: Chatterbox, Qwen3-TTS, OpenAI, ElevenLabs, fal.ai
 - **Voice selection**: 9 built-in Qwen3 voices, OpenAI voices, ElevenLabs library
 - **Voice cloning**: Upload reference audio for Chatterbox/Qwen3 backends
+- **Voice design**: Create custom voices from natural language descriptions (Qwen3)
+- **Save as voice**: Save generated audio as a reusable voice for cloning
 - **History**: Persistent storage with audio playback in `~/.cornfab/`
 
 ## Installation
@@ -162,6 +164,30 @@ export FAL_KEY="..."
 ```
 
 Or configure in the app's API Settings panel.
+
+## Voice Design (Qwen3-TTS)
+
+Qwen3-TTS supports creating custom voices from natural language descriptions.
+
+### VRAM Usage
+
+| Mode | Model | VRAM |
+|------|-------|------|
+| Built-in voices | CustomVoice | ~4GB |
+| Voice design | CustomVoice + VoiceDesign | ~9GB |
+
+The VoiceDesign model loads on first use and stays in memory. Restart the container to unload.
+
+### Recommended Workflow
+
+To avoid keeping the VoiceDesign model loaded:
+
+1. **Design once**: Check "Design voice from description", enter a description like "A warm, friendly female voice with a slight British accent", generate
+2. **Save as voice**: Click "Save as Voice", enter a name (e.g., "warm-female")
+3. **Restart container**: `docker restart qwen3-tts-api` to free ~5GB VRAM
+4. **Clone from saved**: Select "warm-female (custom)" from the voice dropdown for future generations
+
+Saved voices are stored in `~/.cornfab/voices/` and work with both Qwen3 and Chatterbox backends.
 
 ## Development
 

@@ -129,6 +129,12 @@ app_ui <- function() {
               class = "btn-download"
             ),
             shiny::actionButton(
+              "save_as_voice",
+              "Save as Voice",
+              icon = shiny::icon("microphone"),
+              class = "btn-secondary"
+            ),
+            shiny::actionButton(
               "copy_to_history",
               "Save to History",
               icon = shiny::icon("bookmark"),
