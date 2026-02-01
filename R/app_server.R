@@ -97,6 +97,140 @@ app_server <- function(
     }
   }, ignoreInit = TRUE)
 
+  # Container status check helper
+  container_running <- function(name) {
+    result <- tryCatch({
+      out <- system2("docker", c("inspect", "-f", "{{.State.Running}}", name),
+                     stdout = TRUE, stderr = TRUE)
+      identical(trimws(out), "true")
+    }, error = function(e) FALSE)
+    result
+  }
+
+  # GPU VRAM usage helper
+  get_vram_usage <- function() {
+    tryCatch({
+      out <- system2("nvidia-smi", c("--query-gpu=memory.used,memory.total",
+                                      "--format=csv,noheader,nounits"),
+                     stdout = TRUE, stderr = TRUE)
+      parts <- strsplit(trimws(out[1]), ",\\s*")[[1]]
+      list(used = as.numeric(parts[1]), total = as.numeric(parts[2]))
+    }, error = function(e) NULL)
+  }
+
+  # Qwen3 container button with VRAM
+  output$qwen3_container_btn <- shiny::renderUI({
+    # Invalidate every 5 seconds to refresh status
+    shiny::invalidateLater(5000)
+    running <- container_running("qwen3-tts-api")
+    vram <- get_vram_usage()
+
+    vram_text <- if (!is.null(vram)) {
+      sprintf("VRAM: %.1f / %.1f GB", vram$used / 1024, vram$total / 1024)
+    } else {
+      NULL
+    }
+
+    shiny::tagList(
+      if (running) {
+        shiny::tagList(
+          shiny::actionButton("restart_qwen3", "Restart",
+                              icon = shiny::icon("rotate"), class = "btn-sm btn-outline-secondary"),
+          shiny::actionButton("stop_qwen3", "Stop",
+                              icon = shiny::icon("stop"), class = "btn-sm btn-outline-danger")
+        )
+      } else {
+        shiny::actionButton("start_qwen3", "Start Container",
+                            icon = shiny::icon("play"), class = "btn-sm btn-outline-primary")
+      },
+      if (!is.null(vram_text)) {
+        shiny::tags$small(class = "vram-usage", vram_text)
+      }
+    )
+  })
+
+  shiny::observeEvent(input$stop_qwen3, {
+    status_msg("Stopping qwen3-tts-api container...")
+    system2("docker", c("stop", "qwen3-tts-api"), stdout = TRUE, stderr = TRUE)
+    status_msg("Container stopped.")
+  }, ignoreInit = TRUE)
+
+  shiny::observeEvent(input$start_qwen3, {
+    status_msg("Starting qwen3-tts-api container...")
+    result <- system2("docker", c("start", "qwen3-tts-api"), stdout = TRUE, stderr = TRUE)
+    if (any(grepl("qwen3-tts-api", result))) {
+      status_msg("Container started. Waiting for model to load...")
+    } else {
+      status_msg(paste("Start failed:", paste(result, collapse = " ")))
+    }
+  }, ignoreInit = TRUE)
+
+  shiny::observeEvent(input$restart_qwen3, {
+    status_msg("Restarting qwen3-tts-api container...")
+    result <- system2("docker", c("restart", "qwen3-tts-api"), stdout = TRUE, stderr = TRUE)
+    if (any(grepl("qwen3-tts-api", result))) {
+      status_msg("Container restarted. Waiting for model to load...")
+    } else {
+      status_msg(paste("Restart failed:", paste(result, collapse = " ")))
+    }
+  }, ignoreInit = TRUE)
+
+  # Chatterbox container button with VRAM
+  output$chatterbox_container_btn <- shiny::renderUI({
+    shiny::invalidateLater(5000)
+    running <- container_running("chatterbox")
+    vram <- get_vram_usage()
+
+    vram_text <- if (!is.null(vram)) {
+      sprintf("VRAM: %.1f / %.1f GB", vram$used / 1024, vram$total / 1024)
+    } else {
+      NULL
+    }
+
+    shiny::tagList(
+      if (running) {
+        shiny::tagList(
+          shiny::actionButton("restart_chatterbox", "Restart",
+                              icon = shiny::icon("rotate"), class = "btn-sm btn-outline-secondary"),
+          shiny::actionButton("stop_chatterbox", "Stop",
+                              icon = shiny::icon("stop"), class = "btn-sm btn-outline-danger")
+        )
+      } else {
+        shiny::actionButton("start_chatterbox", "Start Container",
+                            icon = shiny::icon("play"), class = "btn-sm btn-outline-primary")
+      },
+      if (!is.null(vram_text)) {
+        shiny::tags$small(class = "vram-usage", vram_text)
+      }
+    )
+  })
+
+  shiny::observeEvent(input$stop_chatterbox, {
+    status_msg("Stopping chatterbox container...")
+    system2("docker", c("stop", "chatterbox"), stdout = TRUE, stderr = TRUE)
+    status_msg("Container stopped.")
+  }, ignoreInit = TRUE)
+
+  shiny::observeEvent(input$start_chatterbox, {
+    status_msg("Starting chatterbox container...")
+    result <- system2("docker", c("start", "chatterbox"), stdout = TRUE, stderr = TRUE)
+    if (any(grepl("chatterbox", result))) {
+      status_msg("Container started. Waiting for model to load...")
+    } else {
+      status_msg(paste("Start failed:", paste(result, collapse = " ")))
+    }
+  }, ignoreInit = TRUE)
+
+  shiny::observeEvent(input$restart_chatterbox, {
+    status_msg("Restarting chatterbox container...")
+    result <- system2("docker", c("restart", "chatterbox"), stdout = TRUE, stderr = TRUE)
+    if (any(grepl("chatterbox", result))) {
+      status_msg("Container restarted. Waiting for model to load...")
+    } else {
+      status_msg(paste("Restart failed:", paste(result, collapse = " ")))
+    }
+  }, ignoreInit = TRUE)
+
   # Pending voice upload (for qwen3 folder confirmation)
   pending_upload <- shiny::reactiveVal(NULL)
 

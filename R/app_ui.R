@@ -351,7 +351,7 @@ app_ui <- function() {
             shiny::tags$summary("API Settings"),
             shiny::div(
               class = "api-content",
-              # Chatterbox URL
+              # Chatterbox URL and container control
               shiny::conditionalPanel(
                 condition = "input.backend == 'chatterbox'",
                 shiny::textInput(
@@ -362,9 +362,13 @@ app_ui <- function() {
                     "http://localhost:7810"
                   ),
                   width = "100%"
+                ),
+                shiny::div(
+                  class = "container-control",
+                  shiny::uiOutput("chatterbox_container_btn")
                 )
               ),
-              # Qwen3-TTS URL
+              # Qwen3-TTS URL and container control
               shiny::conditionalPanel(
                 condition = "input.backend == 'qwen3'",
                 shiny::textInput(
@@ -375,6 +379,10 @@ app_ui <- function() {
                     "http://localhost:7811"
                   ),
                   width = "100%"
+                ),
+                shiny::div(
+                  class = "container-control",
+                  shiny::uiOutput("qwen3_container_btn")
                 )
               ),
               # OpenAI key
