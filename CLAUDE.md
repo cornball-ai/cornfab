@@ -69,6 +69,15 @@ r -e 'tinytest::test_package("cornfab")'
 
 ## History Storage
 
-- Location: `~/.cornfab/`
+- Location: `~/.cornfab/` (symlinked to `~/.cornball/`)
 - History file: `~/.cornfab/history.rds`
 - Audio files: `~/.cornfab/audio/`
+
+## TODO
+
+- **Migrate storage to `~/.cornball/`** (breaking change):
+  - Make base directory configurable (env var or parameter to `run_app()`)
+  - Make history filename configurable (default: `~/.cornball/history/cornfab.rds`)
+  - Update `history_dir()` and `audio_dir()` in `R/history.R`
+  - Update voice discovery paths in `R/app_server.R` (5+ hardcoded `~/.cornfab/voices/` refs)
+  - Currently bridged via symlink: `~/.cornfab` -> `~/.cornball`
