@@ -97,8 +97,15 @@ app_server <- function(
     }
   }, ignoreInit = TRUE)
 
-  # Container status check helper
+  # Check if gpu.ctl is available
+  has_gpuctl <- requireNamespace("gpu.ctl", quietly = TRUE)
+
+  # Container status check helper (gpu.ctl with docker fallback)
   container_running <- function(name) {
+    if (has_gpuctl) {
+      svc_name <- .cornfab_svc_name(name)
+      return(svc_name %in% gpu.ctl::gpu_status()$active)
+    }
     result <- tryCatch({
       out <- system2("docker", c("inspect", "-f", "{{.State.Running}}", name),
                      stdout = TRUE, stderr = TRUE)
@@ -107,15 +114,23 @@ app_server <- function(
     result
   }
 
-  # GPU VRAM usage helper
+  # GPU VRAM usage helper (gpu.ctl with nvidia-smi fallback)
   get_vram_usage <- function() {
-    tryCatch({
-      out <- system2("nvidia-smi", c("--query-gpu=memory.used,memory.total",
-                                      "--format=csv,noheader,nounits"),
-                     stdout = TRUE, stderr = TRUE)
-      parts <- strsplit(trimws(out[1]), ",\\s*")[[1]]
-      list(used = as.numeric(parts[1]), total = as.numeric(parts[2]))
-    }, error = function(e) NULL)
+    if (has_gpuctl) {
+      tryCatch({
+        total <- gpu.ctl::gpu_get_vram()
+        used <- gpu.ctl::gpu_used_vram()
+        list(used = used * 1024, total = total * 1024)
+      }, error = function(e) NULL)
+    } else {
+      tryCatch({
+        out <- system2("nvidia-smi", c("--query-gpu=memory.used,memory.total",
+                                        "--format=csv,noheader,nounits"),
+                       stdout = TRUE, stderr = TRUE)
+        parts <- strsplit(trimws(out[1]), ",\\s*")[[1]]
+        list(used = as.numeric(parts[1]), total = as.numeric(parts[2]))
+      }, error = function(e) NULL)
+    }
   }
 
   # Qwen3 container button with VRAM
@@ -150,29 +165,19 @@ app_server <- function(
   })
 
   shiny::observeEvent(input$stop_qwen3, {
-    status_msg("Stopping qwen3-tts-api container...")
-    system2("docker", c("stop", "qwen3-tts-api"), stdout = TRUE, stderr = TRUE)
-    status_msg("Container stopped.")
+    status_msg("Stopping qwen3-tts-api...")
+    .cornfab_gpu_release("qwen3-tts-api", status_msg)
   }, ignoreInit = TRUE)
 
   shiny::observeEvent(input$start_qwen3, {
-    status_msg("Starting qwen3-tts-api container...")
-    result <- system2("docker", c("start", "qwen3-tts-api"), stdout = TRUE, stderr = TRUE)
-    if (any(grepl("qwen3-tts-api", result))) {
-      status_msg("Container started. Waiting for model to load...")
-    } else {
-      status_msg(paste("Start failed:", paste(result, collapse = " ")))
-    }
+    status_msg("Starting qwen3-tts-api...")
+    .cornfab_gpu_acquire("qwen3-tts-api", status_msg)
   }, ignoreInit = TRUE)
 
   shiny::observeEvent(input$restart_qwen3, {
-    status_msg("Restarting qwen3-tts-api container...")
-    result <- system2("docker", c("restart", "qwen3-tts-api"), stdout = TRUE, stderr = TRUE)
-    if (any(grepl("qwen3-tts-api", result))) {
-      status_msg("Container restarted. Waiting for model to load...")
-    } else {
-      status_msg(paste("Restart failed:", paste(result, collapse = " ")))
-    }
+    status_msg("Restarting qwen3-tts-api...")
+    .cornfab_gpu_release("qwen3-tts-api", status_msg)
+    .cornfab_gpu_acquire("qwen3-tts-api", status_msg)
   }, ignoreInit = TRUE)
 
   # Chatterbox container button with VRAM
@@ -206,29 +211,19 @@ app_server <- function(
   })
 
   shiny::observeEvent(input$stop_chatterbox, {
-    status_msg("Stopping chatterbox container...")
-    system2("docker", c("stop", "chatterbox"), stdout = TRUE, stderr = TRUE)
-    status_msg("Container stopped.")
+    status_msg("Stopping chatterbox...")
+    .cornfab_gpu_release("chatterbox", status_msg)
   }, ignoreInit = TRUE)
 
   shiny::observeEvent(input$start_chatterbox, {
-    status_msg("Starting chatterbox container...")
-    result <- system2("docker", c("start", "chatterbox"), stdout = TRUE, stderr = TRUE)
-    if (any(grepl("chatterbox", result))) {
-      status_msg("Container started. Waiting for model to load...")
-    } else {
-      status_msg(paste("Start failed:", paste(result, collapse = " ")))
-    }
+    status_msg("Starting chatterbox...")
+    .cornfab_gpu_acquire("chatterbox", status_msg)
   }, ignoreInit = TRUE)
 
   shiny::observeEvent(input$restart_chatterbox, {
-    status_msg("Restarting chatterbox container...")
-    result <- system2("docker", c("restart", "chatterbox"), stdout = TRUE, stderr = TRUE)
-    if (any(grepl("chatterbox", result))) {
-      status_msg("Container restarted. Waiting for model to load...")
-    } else {
-      status_msg(paste("Restart failed:", paste(result, collapse = " ")))
-    }
+    status_msg("Restarting chatterbox...")
+    .cornfab_gpu_release("chatterbox", status_msg)
+    .cornfab_gpu_acquire("chatterbox", status_msg)
   }, ignoreInit = TRUE)
 
   # Pending voice upload (for qwen3 folder confirmation)
@@ -892,13 +887,15 @@ configure_backend <- function(
       tts.api::set_tts_key(key)
     }
   } else if (backend == "chatterbox") {
-    base <- Sys.getenv("TTS_API_BASE", "http://localhost:7810")
+    base <- .cornfab_service_url("chatterbox",
+              Sys.getenv("TTS_API_BASE", "http://localhost:7810"))
     tts.api::set_tts_base(base)
   } else if (backend == "native") {
     # Native chatterbox - no API configuration needed
     # Model loads in R process
   } else if (backend == "qwen3") {
-    base <- Sys.getenv("QWEN3_TTS_BASE", "http://localhost:7811")
+    base <- .cornfab_service_url("qwen3-tts",
+              Sys.getenv("QWEN3_TTS_BASE", "http://localhost:7811"))
     tts.api::set_tts_base(base)
   } else if (backend == "elevenlabs") {
     key <- Sys.getenv("ELEVENLABS_API_KEY", "")
@@ -988,6 +985,72 @@ get_local_voices <- function() {
     paste0("custom:", voice_names),
     paste0(voice_names, " (custom)")
   )
+}
+
+# Get service URL from gpu.ctl or use fallback
+.cornfab_service_url <- function(svc_name, fallback) {
+  if (requireNamespace("gpu.ctl", quietly = TRUE)) {
+    url <- tryCatch(gpu.ctl::gpu_service_url(svc_name), error = function(e) NULL)
+    if (!is.null(url)) return(url)
+  }
+  fallback
+}
+
+# Map container name to gpu.ctl service name
+.cornfab_svc_name <- function(container) {
+  # gpu.ctl service names may differ from container names
+  map <- c("qwen3-tts-api" = "qwen3-tts", "chatterbox" = "chatterbox")
+  unname(map[container]) %||% container
+}
+
+# Acquire GPU service (gpu.ctl with docker fallback)
+.cornfab_gpu_acquire <- function(container, status_msg) {
+  svc_name <- .cornfab_svc_name(container)
+
+  if (requireNamespace("gpu.ctl", quietly = TRUE) &&
+      svc_name %in% gpu.ctl::gpu_services()$name) {
+    tryCatch({
+      gpu.ctl::gpu_acquire(svc_name)
+      url <- gpu.ctl::gpu_service_url(svc_name)
+      if (!is.null(url)) tts.api::set_tts_base(url)
+      status_msg(paste0("Service ready: ", svc_name))
+    }, error = function(e) {
+      status_msg(paste("Start failed:", conditionMessage(e)))
+    })
+  } else {
+    result <- tryCatch(
+      system2("docker", c("start", container), stdout = TRUE, stderr = TRUE),
+      error = function(e) conditionMessage(e)
+    )
+    if (any(grepl(container, result))) {
+      status_msg("Container started. Waiting for model to load...")
+    } else {
+      status_msg(paste("Start failed:", paste(result, collapse = " ")))
+    }
+  }
+}
+
+# Release GPU service (gpu.ctl with docker fallback)
+.cornfab_gpu_release <- function(container, status_msg) {
+  svc_name <- .cornfab_svc_name(container)
+
+  if (requireNamespace("gpu.ctl", quietly = TRUE) &&
+      svc_name %in% gpu.ctl::gpu_services()$name) {
+    tryCatch({
+      gpu.ctl::gpu_release(svc_name)
+      status_msg(paste0("Service stopped: ", svc_name))
+    }, error = function(e) {
+      status_msg(paste("Stop failed:", conditionMessage(e)))
+    })
+  } else {
+    system2("docker", c("stop", container), stdout = TRUE, stderr = TRUE)
+    status_msg("Container stopped.")
+  }
+}
+
+# Base R fallback for %||%
+if (!exists("%||%", envir = baseenv())) {
+  `%||%` <- function(x, y) if (is.null(x)) y else x
 }
 
 # Get voices for backend
