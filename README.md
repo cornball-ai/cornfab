@@ -4,6 +4,22 @@
 
 Text-to-speech Shiny app for the Cornball AI ecosystem.
 
+## Quick Start (Docker)
+
+Deploy cornfab + Qwen3-TTS with one command:
+
+```bash
+bash -c "$(curl -fsSL https://raw.githubusercontent.com/cornball-ai/cornfab/main/docker/install.sh)"
+```
+
+This installs:
+- **cornfab** — web UI on port 7803
+- **qwen3-tts-api** — GPU TTS backend on port 7811 (9 voices, voice cloning, voice design)
+
+Requires: Docker, NVIDIA GPU, nvidia-container-toolkit.
+
+After install, open http://localhost:7803.
+
 ## Features
 
 - **Multi-backend TTS**: Chatterbox, Qwen3-TTS, OpenAI, ElevenLabs, fal.ai
