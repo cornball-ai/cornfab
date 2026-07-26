@@ -6,9 +6,13 @@
 app_ui()
 }
 \value{
-A Shiny UI object.
+A glinty UI tree.
 }
 \description{
-Create the Cornfab Shiny app user interface.
+Create the Cornfab app user interface.
+}
+\details{
+Assets are served from inst/app/www under /static/ by run_app().
+
 }
 \keyword{internal}

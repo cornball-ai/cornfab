@@ -3,14 +3,8 @@
 \alias{create_history_entry}
 \title{Create a new history entry}
 \usage{
-create_history_entry(
-  text,
-  voice,
-  backend,
-  model = NULL,
-  audio_file = NULL,
-  params = NULL
-)
+create_history_entry(text, voice, backend, model = NULL, audio_file = NULL,
+                     params = NULL)
 }
 \arguments{
 \item{text}{Input text.}
