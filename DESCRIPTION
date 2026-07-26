@@ -14,7 +14,7 @@ Description: A web application for generating speech from text using
 License: MIT + file LICENSE
 Encoding: UTF-8
 Imports:
-    glinty (>= 0.4.0.1),
+    glinty (>= 0.4.1),
     jsonlite,
     stats,
     tools,
