@@ -616,6 +616,11 @@ app_server <- function(input, output, session) {
             # v3 has no clickable container, and nesting a button in
             # one was never valid markup anyway. Two buttons, side by
             # side, each saying what it does.
+            #
+            # Each label says the action, not the ornament. A button
+            # labelled "x" beside a trash icon reads as "x" to a
+            # screen reader, and "12:04" alone does not say what
+            # pressing it will do.
             glinty::panel(
                           variant = if (is_selected) "card" else "plain",
                           glinty::row(
@@ -623,12 +628,12 @@ app_server <- function(input, output, session) {
                                       glinty::row(
                         grow = 1L,
                         glinty::button("history_click",
-                                       format_timestamp(entry$timestamp),
+                                       paste("Load", format_timestamp(entry$timestamp)),
                                        variant = "ghost", value = entry$id)
                     ),
                                       glinty::txt(backend_label(entry$backend),
                         variant = "muted"),
-                                      glinty::button("history_delete", "x",
+                                      glinty::button("history_delete", "Delete",
                         variant = "ghost",
                         icon = "trash",
                         value = entry$id)
@@ -753,7 +758,13 @@ app_server <- function(input, output, session) {
         }
         mime <- if (identical(ext, "mp3")) "audio/mpeg" else "audio/wav"
 
-        paste0("data:", mime, ";base64,", jsonlite::base64_enc(data))
+        # The type goes with the source. A browser sniffs the bytes
+        # and never asks, but a native client hands both to a platform
+        # player that does -- and this already knows which format it
+        # asked the backend for.
+        list(src = paste0("data:", mime, ";base64,",
+                          jsonlite::base64_enc(data)),
+             mime = mime)
     })
 
     output$generation_details <- glinty::render_text(function() {
