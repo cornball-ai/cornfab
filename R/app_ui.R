@@ -39,21 +39,21 @@ app_ui <- function() {
                  glinty::panel(
                                id = "cornfab-header",
                                glinty::row(
-                    align = "center", gap = 12L,
-                    glinty::row(
-                                grow = 1L,
-                                glinty::link(
-                            href = "https://cornball.ai", external = TRUE,
-                            children = list(glinty::row(
-                                    align = "center", gap = 10L,
-                                    glinty::image("/static/logo.png",
-                                                  alt = "cornball.ai", height = 32L),
-                                    glinty::txt("cornfab", variant = "heading")
-                                ))
-                        )
-                    ),
-                    glinty::text_output("header_status", variant = "muted")
-                )
+                align = "center", gap = 12L,
+                glinty::row(
+                            grow = 1L,
+                            glinty::link(
+                        href = "https://cornball.ai", external = TRUE,
+                        children = list(glinty::row(
+                                align = "center", gap = 10L,
+                                glinty::image("/static/logo.png",
+                                    alt = "cornball.ai", height = 32L),
+                                glinty::txt("cornfab", variant = "heading")
+                            ))
+                    )
+                ),
+                glinty::text_output("header_status", variant = "muted")
+            )
         ),
 
                  glinty::row(
@@ -65,13 +65,13 @@ app_ui <- function() {
                 glinty::row(
                             align = "center", gap = 8L,
                             glinty::row(grow = 1L, glinty::txt("History",
-                                    variant = "strong")),
+                            variant = "strong")),
                             # A label as well as the icon: an icon-only
                             # button has no accessible name, and the
                             # component vocabulary has nowhere to put
                             # one.
                             glinty::button("clear_history", "Clear",
-                                           icon = "trash", variant = "ghost")
+                        icon = "trash", variant = "ghost")
                 ),
                 glinty::checkbox_input("save_audio", "Save audio files", TRUE),
                 glinty::ui_output("history_list")
@@ -96,7 +96,7 @@ app_ui <- function() {
                         placeholder = "Enter text to convert to speech..."
                     ),
                               glinty::button("generate", "Generate Speech",
-                                             icon = "play", variant = "primary")
+                        icon = "play", variant = "primary")
                 ),
 
                 # Output panel
@@ -106,14 +106,12 @@ app_ui <- function() {
                               # Empty once there is audio; the slot
                               # below plays it. A message is text, and
                               # text_output is where text goes.
-                              glinty::text_output("audio_status",
-                                                  variant = "muted"),
-                              glinty::audio_output("audio_player",
-                                                   autoplay = TRUE),
+                              glinty::text_output("audio_status", variant = "muted"),
+                              glinty::audio_output("audio_player", autoplay = TRUE),
                               glinty::row(
                         gap = 8L,
                         glinty::download_button("download_audio", "Download",
-                                                icon = "download"),
+                            icon = "download"),
                         glinty::button("save_as_voice", "Save as Voice",
                                        icon = "microphone",
                                        variant = "secondary"),
@@ -147,8 +145,7 @@ app_ui <- function() {
                         choices = c("Chatterbox" = "chatterbox"),
                         selected = "chatterbox"
                     ),
-                              glinty::text_output("backend_status",
-                                                  variant = "muted")
+                              glinty::text_output("backend_status", variant = "muted")
                 ),
 
                 # Voice section
@@ -165,8 +162,8 @@ app_ui <- function() {
                               glinty::conditional_panel(
                         condition = glinty::input_is("backend", "qwen3"),
                         glinty::checkbox_input("use_voice_design",
-                                               "Design voice from description",
-                                               FALSE)
+                            "Design voice from description",
+                            FALSE)
                     ),
                               # Voice selector (hidden when voice design is active)
                               glinty::conditional_panel(
@@ -194,7 +191,7 @@ app_ui <- function() {
                               glinty::conditional_panel(
                         condition = glinty::cond_and(
                             glinty::input_is("backend",
-                                             c("chatterbox", "qwen3", "native")),
+                                c("chatterbox", "qwen3", "native")),
                             glinty::cond_not(glinty::cond_and(
                                     glinty::input_is("backend", "qwen3"),
                                     glinty::input_is("use_voice_design", TRUE)
@@ -217,28 +214,28 @@ app_ui <- function() {
                               glinty::collapse(
                         title = "Parameters", open = TRUE, id = "params",
                         glinty::slider_input("speed", "Speed",
-                                             min = 0.5, max = 2.0, value = 1.0,
-                                             step = 0.1),
+                            min = 0.5, max = 2.0, value = 1.0,
+                            step = 0.1),
                         # Chatterbox-specific
                         glinty::conditional_panel(
                             condition = glinty::input_is("backend",
-                                                         c("chatterbox", "native")),
+                                c("chatterbox", "native")),
                             glinty::slider_input("exaggeration", "Exaggeration",
-                                                 min = 0.25, max = 1, value = 0.5,
-                                                 step = 0.05),
+                                min = 0.25, max = 1, value = 0.5,
+                                step = 0.05),
                             glinty::slider_input("cfg_weight", "CFG Weight",
-                                                 min = 0, max = 1, value = 0.5,
-                                                 step = 0.05)
+                                min = 0, max = 1, value = 0.5,
+                                step = 0.05)
                         ),
                         # ElevenLabs-specific
                         glinty::conditional_panel(
                             condition = glinty::input_is("backend", "elevenlabs"),
                             glinty::slider_input("stability", "Stability",
-                                                 min = 0, max = 1, value = 0.5,
-                                                 step = 0.05),
+                                min = 0, max = 1, value = 0.5,
+                                step = 0.05),
                             glinty::slider_input("similarity", "Similarity Boost",
-                                                 min = 0, max = 1, value = 0.75,
-                                                 step = 0.05)
+                                min = 0, max = 1, value = 0.75,
+                                step = 0.05)
                         ),
                         # Qwen3-specific
                         glinty::conditional_panel(
@@ -260,7 +257,7 @@ app_ui <- function() {
                                 selected = "English"
                             ),
                             glinty::text_input("instruct", "Voice Instructions",
-                                               placeholder = "e.g., Speak cheerfully")
+                                placeholder = "e.g., Speak cheerfully")
                         ),
                         glinty::number_input("seed", "Seed (optional)")
                     )
@@ -275,16 +272,16 @@ app_ui <- function() {
                         glinty::conditional_panel(
                             condition = glinty::input_is("backend", "chatterbox"),
                             glinty::text_input("chatterbox_url", "Chatterbox URL",
-                                               value = Sys.getenv("TTS_API_BASE",
-                                                   "http://localhost:7810")),
+                                value = Sys.getenv("TTS_API_BASE",
+                                    "http://localhost:7810")),
                             glinty::ui_output("chatterbox_container_btn")
                         ),
                         # Qwen3-TTS URL and container control
                         glinty::conditional_panel(
                             condition = glinty::input_is("backend", "qwen3"),
                             glinty::text_input("qwen3_url", "Qwen3-TTS URL",
-                                               value = Sys.getenv("QWEN3_TTS_BASE",
-                                                   "http://localhost:7811")),
+                                value = Sys.getenv("QWEN3_TTS_BASE",
+                                    "http://localhost:7811")),
                             glinty::ui_output("qwen3_container_btn")
                         ),
                         # API keys are never prefilled; see key_placeholder()

@@ -241,10 +241,10 @@ app_server <- function(input, output, session) {
         # every frontend has.
         glinty::txt(st$text,
                     variant = if (identical(st$class, "error")) {
-                        "strong"
-                    } else {
-                        "muted"
-                    })
+                "strong"
+            } else {
+                "muted"
+            })
     })
 
     glinty::observe_event(input$voice_upload, function() {
@@ -621,20 +621,19 @@ app_server <- function(input, output, session) {
                           glinty::row(
                                       align = "center", gap = 8L,
                                       glinty::row(
-                            grow = 1L,
-                            glinty::button("history_click",
-                                           format_timestamp(entry$timestamp),
-                                           variant = "ghost", value = entry$id)
-                        ),
-                                      glinty::txt(backend_label(entry$backend),
-                                                  variant = "muted"),
-                                      glinty::button("history_delete", "x",
-                                                     variant = "ghost",
-                                                     icon = "trash",
-                                                     value = entry$id)
+                        grow = 1L,
+                        glinty::button("history_click",
+                                       format_timestamp(entry$timestamp),
+                                       variant = "ghost", value = entry$id)
                     ),
-                          glinty::txt(truncate_text(entry$text, 60),
-                                      variant = "muted"),
+                                      glinty::txt(backend_label(entry$backend),
+                        variant = "muted"),
+                                      glinty::button("history_delete", "x",
+                        variant = "ghost",
+                        icon = "trash",
+                        value = entry$id)
+                ),
+                          glinty::txt(truncate_text(entry$text, 60), variant = "muted"),
                           params
             )
         })
