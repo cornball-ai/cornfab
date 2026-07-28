@@ -50,10 +50,9 @@ app_server <- function(input, output, session) {
         if (length(models$choices) == 0) {
             return(NULL)
         }
-        glinty::div(
-                    class = "settings-section",
-                    glinty::div(class = "section-title", "Model"),
-                    glinty::select_input("model", "",
+        glinty::panel(
+                      variant = "sidebar", title = "Model",
+                      glinty::select_input("model", "",
                 choices = models$choices,
                 selected = models$default)
         )
@@ -163,25 +162,24 @@ app_server <- function(input, output, session) {
 
             controls <- if (running) {
                 list(
-                     icon_label_button(ids$restart, "rotate", "Restart",
-                                       class = "btn-sm btn-secondary"),
-                     icon_label_button(ids$stop, "stop", "Stop",
-                                       class = "btn-sm btn-danger")
+                     glinty::button(ids$restart, "Restart", icon = "rotate",
+                                    variant = "secondary"),
+                     glinty::button(ids$stop, "Stop", icon = "stop",
+                                    variant = "danger")
                 )
             } else {
-                list(icon_label_button(ids$start, "play", "Start Container",
-                                       class = "btn-sm"))
+                list(glinty::button(ids$start, "Start Container",
+                                    icon = "play"))
             }
 
             if (!is.null(vram)) {
-                controls <- c(controls, list(glinty::tag("small",
-                            text = sprintf("VRAM: %.1f / %.1f GB",
-                                vram$used / 1024, vram$total / 1024),
-                            attrs = list(class = "vram-usage"))))
+                controls <- c(controls, list(glinty::txt(
+                            sprintf("VRAM: %.1f / %.1f GB",
+                                    vram$used / 1024, vram$total / 1024),
+                            variant = "muted")))
             }
 
-            glinty::tag("div", attrs = list(class = "container-controls"),
-                        children = controls)
+            do.call(glinty::column, c(controls, list(gap = 8L)))
         })
     }
 
@@ -236,8 +234,17 @@ app_server <- function(input, output, session) {
         if (is.null(st)) {
             return(NULL)
         }
-        glinty::tag("small", text = st$text,
-                    attrs = list(class = paste("upload-status", st$class)))
+        # A component rather than plain text, because the outcome
+        # changes how it reads: an error is emphasised, progress and
+        # success are quiet. Colour was doing that job through a
+        # class, which is a browser-only lever -- variant is the one
+        # every frontend has.
+        glinty::txt(st$text,
+                    variant = if (identical(st$class, "error")) {
+                        "strong"
+                    } else {
+                        "muted"
+                    })
     })
 
     glinty::observe_event(input$voice_upload, function() {
@@ -267,8 +274,8 @@ app_server <- function(input, output, session) {
                 ))
             glinty::show_modal(
                                session,
-                               glinty::p(paste0("Voice files will be stored in: ", voices_dir)),
-                               glinty::p("Create this folder?"),
+                               glinty::txt(paste0("Voice files will be stored in: ", voices_dir)),
+                               glinty::txt("Create this folder?"),
                                title = "Create Voice Folder",
                                footer = glinty::row(
                     glinty::modal_button("Cancel"),
@@ -535,7 +542,7 @@ app_server <- function(input, output, session) {
 
         glinty::show_modal(
                            session,
-                           glinty::p("Save this audio as a reusable voice for cloning."),
+                           glinty::txt("Save this audio as a reusable voice for cloning."),
                            glinty::text_input("new_voice_name", "Voice Name",
                 placeholder = "e.g., warm-female, narrator"),
                            title = "Save as Voice",
@@ -588,50 +595,51 @@ app_server <- function(input, output, session) {
         sel <- selected_entry()
 
         if (length(hist) == 0) {
-            return(glinty::div(class = "history-empty", "No generations yet"))
+            return(glinty::txt("No generations yet", variant = "muted"))
         }
 
         items <- lapply(hist, function(entry) {
             is_selected <- !is.null(sel) && identical(sel, entry$id)
 
-            children <- list(
-                             glinty::tag("div", attrs = list(class = "history-item-header"),
-                    children = list(
-                                    glinty::span(format_timestamp(entry$timestamp),
-                            class = "history-timestamp"),
-                                    glinty::span(backend_label(entry$backend),
-                            class = "history-backend"),
-                                    # Carries the entry id; the nearest bind wins on click,
-                                    # so this never also triggers the row.
-                                    glinty::tag("button", text = "x",
-                            attrs = list(class = "history-delete-btn",
-                                type = "button", title = "Delete"),
-                            bind = list(event = "click", target = "history_delete",
-                                        value = entry$id))
-                    )),
-                             glinty::div(class = "history-preview",
-                    truncate_text(entry$text, 60))
-            )
-
-            if (!is.null(entry$params) && length(entry$params) > 0) {
-                children <- c(children, list(glinty::div(
-                            class = "history-params",
-                            paste(names(entry$params), "=", unlist(entry$params),
-                                  collapse = ", ")
-                        )))
+            params <- if (!is.null(entry$params) && length(entry$params) > 0) {
+                glinty::txt(paste(names(entry$params), "=",
+                                  unlist(entry$params), collapse = ", "),
+                            variant = "muted")
+            } else {
+                NULL
             }
 
-            glinty::tag(
-                        "div",
-                        attrs = list(class = trimws(paste("history-item",
-                            if (is_selected) "selected" else ""))),
-                        bind = list(event = "click", target = "history_click",
-                                    value = entry$id),
-                        children = children
+            # The timestamp is the button, and it carries the entry id
+            # as its value -- one observer below serves every row and
+            # reads which. Under protocol 2 this was a click bind on
+            # the whole card, with the delete button nested inside it;
+            # v3 has no clickable container, and nesting a button in
+            # one was never valid markup anyway. Two buttons, side by
+            # side, each saying what it does.
+            glinty::panel(
+                          variant = if (is_selected) "card" else "plain",
+                          glinty::row(
+                                      align = "center", gap = 8L,
+                                      glinty::row(
+                            grow = 1L,
+                            glinty::button("history_click",
+                                           format_timestamp(entry$timestamp),
+                                           variant = "ghost", value = entry$id)
+                        ),
+                                      glinty::txt(backend_label(entry$backend),
+                                                  variant = "muted"),
+                                      glinty::button("history_delete", "x",
+                                                     variant = "ghost",
+                                                     icon = "trash",
+                                                     value = entry$id)
+                    ),
+                          glinty::txt(truncate_text(entry$text, 60),
+                                      variant = "muted"),
+                          params
             )
         })
 
-        do.call(glinty::div, c(items, list(class = "history-items")))
+        do.call(glinty::column, c(items, list(gap = 8L)))
     })
 
     glinty::observe_event(input$history_click, function() {
@@ -715,18 +723,27 @@ app_server <- function(input, output, session) {
         sprintf("%d chars", nchar(text))
     })
 
-    output$backend_status <- glinty::render_ui(function() {
-        glinty::tag("small", text = backend_label(current_backend()),
-                    attrs = list(class = "backend-status"))
+    output$backend_status <- glinty::render_text(function() {
+        backend_label(current_backend())
     })
 
-    output$audio_player <- glinty::render_ui(function() {
+    # Says so when there is nothing to play, and gets out of the way
+    # once there is. The empty slot beneath it is not self-explanatory.
+    output$audio_status <- glinty::render_text(function() {
+        if (is.null(audio_data())) {
+            "No audio generated yet. Enter text and click Generate."
+        } else {
+            ""
+        }
+    })
+
+    # render_audio() rather than a hand-built <audio> element: the
+    # value is a source, and which element plays it is the frontend's
+    # problem. NULL leaves the slot empty.
+    output$audio_player <- glinty::render_audio(function() {
         data <- audio_data()
         if (is.null(data)) {
-            return(glinty::div(
-                               class = "no-audio",
-                               glinty::p("No audio generated yet. Enter text and click Generate.")
-                ))
+            return(NULL)
         }
 
         file <- audio_file()
@@ -737,15 +754,7 @@ app_server <- function(input, output, session) {
         }
         mime <- if (identical(ext, "mp3")) "audio/mpeg" else "audio/wav"
 
-        data_uri <- paste0("data:", mime, ";base64,",
-                           jsonlite::base64_enc(data))
-
-        glinty::tag("audio", attrs = list(
-                src = data_uri,
-                controls = "controls",
-                autoplay = "autoplay",
-                class = "audio-player"
-            ))
+        paste0("data:", mime, ";base64,", jsonlite::base64_enc(data))
     })
 
     output$generation_details <- glinty::render_text(function() {

@@ -4,6 +4,12 @@
 #'
 #' Assets are served from inst/app/www under /static/ by run_app().
 #'
+#' Built from glinty's component vocabulary rather than from HTML
+#' tags: the tree travels the wire as components, so a non-browser
+#' frontend renders the same app with real widgets. Anything reached
+#' for here that the vocabulary does not supply is a finding against
+#' glinty, not something to paper over with raw markup.
+#'
 #' @return A glinty UI tree.
 #'
 #' @keywords internal
@@ -27,113 +33,102 @@ app_ui <- function() {
                  css = "/static/styles.css",
                  favicon = "/static/logo.png",
 
-                 # Header
-                 glinty::div(
-                             class = "cornfab-header",
-                             glinty::div(
-                class = "header-content",
-                glinty::tag(
-                            "a",
-                            attrs = list(href = "https://cornball.ai",
-                        target = "_blank", class = "header-link"),
-                            children = list(
-                        glinty::tag("img", attrs = list(src = "/static/logo.png",
-                                class = "header-logo", alt = "cornball.ai")),
-                        glinty::span("cornfab", class = "header-title")
-                    )
-                ),
-                glinty::div(class = "header-spacer"),
-                glinty::div(
-                            class = "header-status",
-                            glinty::text_output("header_status")
+                 # Header. The grown row is the spacer: it takes the
+                 # leftover width, which pushes the status to the far
+                 # edge without a div whose only job is to be empty.
+                 glinty::panel(
+                               id = "cornfab-header",
+                               glinty::row(
+                    align = "center", gap = 12L,
+                    glinty::row(
+                                grow = 1L,
+                                glinty::link(
+                            href = "https://cornball.ai", external = TRUE,
+                            children = list(glinty::row(
+                                    align = "center", gap = 10L,
+                                    glinty::image("/static/logo.png",
+                                                  alt = "cornball.ai", height = 32L),
+                                    glinty::txt("cornfab", variant = "heading")
+                                ))
+                        )
+                    ),
+                    glinty::text_output("header_status", variant = "muted")
                 )
-            )
         ),
 
-                 glinty::div(
-                             class = "main-container",
+                 glinty::row(
+                             id = "main-layout", gap = 16L,
 
                              # Left sidebar - History
-                             glinty::div(
-                class = "left-sidebar",
-                glinty::div(
-                            class = "sidebar-header",
-                            glinty::span("History"),
-                            icon_button("clear_history", "trash", "Clear all history",
-                                        class = "btn-sm")
+                             glinty::panel(
+                variant = "sidebar", width = 280L, id = "left-sidebar",
+                glinty::row(
+                            align = "center", gap = 8L,
+                            glinty::row(grow = 1L, glinty::txt("History",
+                                    variant = "strong")),
+                            # A label as well as the icon: an icon-only
+                            # button has no accessible name, and the
+                            # component vocabulary has nowhere to put
+                            # one.
+                            glinty::button("clear_history", "Clear",
+                                           icon = "trash", variant = "ghost")
                 ),
-                glinty::div(
-                            class = "sidebar-options",
-                            glinty::checkbox_input("save_audio", "Save audio files", TRUE)
-                ),
-                glinty::div(
-                            class = "history-list",
-                            glinty::ui_output("history_list")
-                )
+                glinty::checkbox_input("save_audio", "Save audio files", TRUE),
+                glinty::ui_output("history_list")
             ),
 
                              # Center content
-                             glinty::div(
-                class = "center-content",
+                             glinty::column(
+                grow = 1L, gap = 16L, id = "center-content",
 
                 # Input panel
-                glinty::div(
-                            class = "input-panel",
-                            glinty::div(
-                                        class = "panel-header",
-                                        glinty::span("Text Input"),
-                                        glinty::span(class = "char-count",
-                            glinty::text_output("char_count"))
+                glinty::panel(
+                              variant = "card", id = "input-panel",
+                              glinty::row(
+                        align = "center", gap = 8L,
+                        glinty::row(grow = 1L, glinty::txt("Text Input",
+                                variant = "strong")),
+                        glinty::text_output("char_count", variant = "muted")
                     ),
-                            glinty::div(
-                                        class = "text-input-wrapper",
-                                        glinty::textarea_input(
-                            "text_input", "",
-                            rows = 8L,
-                            placeholder = "Enter text to convert to speech..."
-                        )
+                              glinty::textarea_input(
+                        "text_input", "",
+                        rows = 8L,
+                        placeholder = "Enter text to convert to speech..."
                     ),
-                            glinty::div(
-                                        class = "input-controls",
-                                        icon_label_button("generate", "play", "Generate Speech",
-                            class = "btn-generate")
-                    )
+                              glinty::button("generate", "Generate Speech",
+                                             icon = "play", variant = "primary")
                 ),
 
                 # Output panel
-                glinty::div(
-                            class = "output-panel",
-                            glinty::div(
-                                        class = "panel-header",
-                                        glinty::span("Generated Audio")
+                glinty::panel(
+                              variant = "card", id = "output-panel",
+                              glinty::txt("Generated Audio", variant = "strong"),
+                              # Empty once there is audio; the slot
+                              # below plays it. A message is text, and
+                              # text_output is where text goes.
+                              glinty::text_output("audio_status",
+                                                  variant = "muted"),
+                              glinty::audio_output("audio_player",
+                                                   autoplay = TRUE),
+                              glinty::row(
+                        gap = 8L,
+                        glinty::download_button("download_audio", "Download",
+                                                icon = "download"),
+                        glinty::button("save_as_voice", "Save as Voice",
+                                       icon = "microphone",
+                                       variant = "secondary"),
+                        glinty::button("copy_to_history", "Save to History",
+                                       icon = "bookmark",
+                                       variant = "secondary")
                     ),
-                            glinty::div(
-                                        class = "audio-container",
-                                        glinty::ui_output("audio_player")
-                    ),
-                            glinty::div(
-                                        class = "output-controls",
-                                        glinty::download_button("download_audio", "Download",
-                            class = "btn-download"),
-                                        icon_label_button("save_as_voice", "microphone", "Save as Voice",
-                            class = "btn-secondary"),
-                                        icon_label_button("copy_to_history", "bookmark", "Save to History",
-                            class = "btn-secondary")
-                    ),
-                            glinty::tabset(
+                              glinty::tabset(
                         glinty::tab_panel(
                             "Details",
-                            glinty::div(
-                                        class = "details-content",
-                                        glinty::verbatim_output("generation_details")
-                            )
+                            glinty::verbatim_output("generation_details")
                         ),
                         glinty::tab_panel(
                             "Text",
-                            glinty::div(
-                                        class = "text-content",
-                                        glinty::verbatim_output("generated_text")
-                            )
+                            glinty::verbatim_output("generated_text")
                         ),
                         id = "output_tabs"
                     )
@@ -141,81 +136,75 @@ app_ui <- function() {
             ),
 
                              # Right sidebar - Settings
-                             glinty::div(
-                class = "right-sidebar",
+                             glinty::column(
+                width = 280L, gap = 16L, id = "right-sidebar",
 
                 # Backend section
-                glinty::div(
-                            class = "settings-section",
-                            glinty::div(class = "section-title", "Backend"),
-                            glinty::select_input(
+                glinty::panel(
+                              variant = "sidebar", title = "Backend",
+                              glinty::select_input(
                         "backend", "",
                         choices = c("Chatterbox" = "chatterbox"),
                         selected = "chatterbox"
                     ),
-                            glinty::ui_output("backend_status")
+                              glinty::text_output("backend_status",
+                                                  variant = "muted")
                 ),
 
                 # Voice section
-                glinty::div(
-                            class = "settings-section",
-                            glinty::div(
-                                        class = "section-title-row",
-                                        glinty::span("Voice", class = "section-title"),
-                                        icon_button("refresh_voices", "rotate", "Refresh voice list",
-                            class = "btn-sm")
+                glinty::panel(
+                              variant = "sidebar",
+                              glinty::row(
+                        align = "center", gap = 8L,
+                        glinty::row(grow = 1L, glinty::txt("Voice",
+                                variant = "strong")),
+                        glinty::button("refresh_voices", "Refresh",
+                                       icon = "rotate", variant = "ghost")
                     ),
-                            # Voice Design toggle (qwen3 only)
-                            glinty::conditional_panel(
+                              # Voice Design toggle (qwen3 only)
+                              glinty::conditional_panel(
                         condition = glinty::input_is("backend", "qwen3"),
-                        glinty::div(
-                                    class = "voice-design-toggle",
-                                    glinty::checkbox_input("use_voice_design",
-                                "Design voice from description", FALSE)
-                        )
+                        glinty::checkbox_input("use_voice_design",
+                                               "Design voice from description",
+                                               FALSE)
                     ),
-                            # Voice selector (hidden when voice design is active)
-                            glinty::conditional_panel(
+                              # Voice selector (hidden when voice design is active)
+                              glinty::conditional_panel(
                         condition = glinty::cond_not(glinty::cond_and(
                                 glinty::input_is("backend", "qwen3"),
                                 glinty::input_is("use_voice_design", TRUE)
                             )),
                         glinty::ui_output("voice_select")
                     ),
-                            # Voice description (qwen3 voice design mode)
-                            glinty::conditional_panel(
+                              # Voice description (qwen3 voice design mode)
+                              glinty::conditional_panel(
                         condition = glinty::cond_and(
                             glinty::input_is("backend", "qwen3"),
                             glinty::input_is("use_voice_design", TRUE)
                         ),
-                        glinty::div(
-                                    class = "voice-design-section",
-                                    glinty::textarea_input(
-                                "voice_description", "",
-                                rows = 3L,
-                                placeholder = paste("Describe the voice you want, e.g.,",
-                                    "'A warm, friendly female voice with a slight",
-                                    "British accent'")
-                            )
+                        glinty::textarea_input(
+                            "voice_description", "",
+                            rows = 3L,
+                            placeholder = paste("Describe the voice you want, e.g.,",
+                                "'A warm, friendly female voice with a slight",
+                                "British accent'")
                         )
                     ),
-                            # Voice upload - hidden in design mode
-                            glinty::conditional_panel(
+                              # Voice upload - hidden in design mode
+                              glinty::conditional_panel(
                         condition = glinty::cond_and(
-                            glinty::input_is("backend", c("chatterbox", "qwen3", "native")),
+                            glinty::input_is("backend",
+                                             c("chatterbox", "qwen3", "native")),
                             glinty::cond_not(glinty::cond_and(
                                     glinty::input_is("backend", "qwen3"),
                                     glinty::input_is("use_voice_design", TRUE)
                                 ))
                         ),
-                        glinty::div(
-                                    class = "voice-upload-section",
-                                    glinty::file_input(
-                                "voice_upload", "Add Voice",
-                                accept = c(".wav", ".mp3", ".m4a", ".ogg", ".flac")
-                            ),
-                                    glinty::ui_output("upload_status")
-                        )
+                        glinty::file_input(
+                            "voice_upload", "Add Voice",
+                            accept = c(".wav", ".mp3", ".m4a", ".ogg", ".flac")
+                        ),
+                        glinty::ui_output("upload_status")
                     )
                 ),
 
@@ -223,116 +212,100 @@ app_ui <- function() {
                 glinty::ui_output("model_section"),
 
                 # Parameters section
-                glinty::div(
-                            class = "settings-section",
-                            glinty::tag(
-                                        "details",
-                                        attrs = list(class = "params-details", open = "open"),
-                                        children = list(
-                            glinty::tag("summary", text = "Parameters"),
-                            glinty::div(
-                                        class = "params-content",
-                                        glinty::slider_input("speed", "Speed",
-                                    min = 0.5, max = 2.0, value = 1.0, step = 0.1),
-                                        # Chatterbox-specific
-                                        glinty::conditional_panel(
-                                    condition = glinty::input_is("backend",
-                                        c("chatterbox", "native")),
-                                    glinty::slider_input("exaggeration", "Exaggeration",
-                                        min = 0.25, max = 1, value = 0.5, step = 0.05),
-                                    glinty::slider_input("cfg_weight", "CFG Weight",
-                                        min = 0, max = 1, value = 0.5, step = 0.05)
+                glinty::panel(
+                              variant = "sidebar",
+                              glinty::collapse(
+                        title = "Parameters", open = TRUE, id = "params",
+                        glinty::slider_input("speed", "Speed",
+                                             min = 0.5, max = 2.0, value = 1.0,
+                                             step = 0.1),
+                        # Chatterbox-specific
+                        glinty::conditional_panel(
+                            condition = glinty::input_is("backend",
+                                                         c("chatterbox", "native")),
+                            glinty::slider_input("exaggeration", "Exaggeration",
+                                                 min = 0.25, max = 1, value = 0.5,
+                                                 step = 0.05),
+                            glinty::slider_input("cfg_weight", "CFG Weight",
+                                                 min = 0, max = 1, value = 0.5,
+                                                 step = 0.05)
+                        ),
+                        # ElevenLabs-specific
+                        glinty::conditional_panel(
+                            condition = glinty::input_is("backend", "elevenlabs"),
+                            glinty::slider_input("stability", "Stability",
+                                                 min = 0, max = 1, value = 0.5,
+                                                 step = 0.05),
+                            glinty::slider_input("similarity", "Similarity Boost",
+                                                 min = 0, max = 1, value = 0.75,
+                                                 step = 0.05)
+                        ),
+                        # Qwen3-specific
+                        glinty::conditional_panel(
+                            condition = glinty::input_is("backend", "qwen3"),
+                            glinty::select_input(
+                                "language", "Language",
+                                choices = c(
+                                    "English" = "English",
+                                    "Spanish" = "Spanish",
+                                    "Chinese" = "Chinese",
+                                    "Japanese" = "Japanese",
+                                    "Korean" = "Korean",
+                                    "French" = "French",
+                                    "German" = "German",
+                                    "Italian" = "Italian",
+                                    "Portuguese" = "Portuguese",
+                                    "Russian" = "Russian"
                                 ),
-                                        # ElevenLabs-specific
-                                        glinty::conditional_panel(
-                                    condition = glinty::input_is("backend", "elevenlabs"),
-                                    glinty::slider_input("stability", "Stability",
-                                        min = 0, max = 1, value = 0.5, step = 0.05),
-                                    glinty::slider_input("similarity", "Similarity Boost",
-                                        min = 0, max = 1, value = 0.75, step = 0.05)
-                                ),
-                                        # Qwen3-specific
-                                        glinty::conditional_panel(
-                                    condition = glinty::input_is("backend", "qwen3"),
-                                    glinty::select_input(
-                                        "language", "Language",
-                                        choices = c(
-                                            "English" = "English",
-                                            "Spanish" = "Spanish",
-                                            "Chinese" = "Chinese",
-                                            "Japanese" = "Japanese",
-                                            "Korean" = "Korean",
-                                            "French" = "French",
-                                            "German" = "German",
-                                            "Italian" = "Italian",
-                                            "Portuguese" = "Portuguese",
-                                            "Russian" = "Russian"
-                                        ),
-                                        selected = "English"
-                                    ),
-                                    glinty::text_input("instruct", "Voice Instructions",
-                                        placeholder = "e.g., Speak cheerfully")
-                                ),
-                                        glinty::number_input("seed", "Seed (optional)")
-                            )
-                        )
+                                selected = "English"
+                            ),
+                            glinty::text_input("instruct", "Voice Instructions",
+                                               placeholder = "e.g., Speak cheerfully")
+                        ),
+                        glinty::number_input("seed", "Seed (optional)")
                     )
                 ),
 
                 # API Settings section
-                glinty::div(
-                            class = "settings-section",
-                            glinty::tag(
-                                        "details",
-                                        attrs = list(class = "api-details"),
-                                        children = list(
-                            glinty::tag("summary", text = "API Settings"),
-                            glinty::div(
-                                        class = "api-content",
-                                        # Chatterbox URL and container control
-                                        glinty::conditional_panel(
-                                    condition = glinty::input_is("backend", "chatterbox"),
-                                    glinty::text_input("chatterbox_url", "Chatterbox URL",
-                                        value = Sys.getenv("TTS_API_BASE",
-                                            "http://localhost:7810")),
-                                    glinty::div(
-                                        class = "container-control",
-                                        glinty::ui_output("chatterbox_container_btn")
-                                    )
-                                ),
-                                        # Qwen3-TTS URL and container control
-                                        glinty::conditional_panel(
-                                    condition = glinty::input_is("backend", "qwen3"),
-                                    glinty::text_input("qwen3_url", "Qwen3-TTS URL",
-                                        value = Sys.getenv("QWEN3_TTS_BASE",
-                                            "http://localhost:7811")),
-                                    glinty::div(
-                                        class = "container-control",
-                                        glinty::ui_output("qwen3_container_btn")
-                                    )
-                                ),
-                                        # API keys are never prefilled; see key_placeholder()
-                                        glinty::conditional_panel(
-                                    condition = glinty::input_is("backend", "openai"),
-                                    glinty::password_input("openai_key", "OpenAI API Key",
-                                        placeholder = key_placeholder("OPENAI_API_KEY"))
-                                ),
-                                        glinty::conditional_panel(
-                                    condition = glinty::input_is("backend", "elevenlabs"),
-                                    glinty::password_input("elevenlabs_key",
-                                        "ElevenLabs API Key",
-                                        placeholder = key_placeholder("ELEVENLABS_API_KEY"))
-                                )
-                            )
+                glinty::panel(
+                              variant = "sidebar",
+                              glinty::collapse(
+                        title = "API Settings", id = "api-settings",
+                        # Chatterbox URL and container control
+                        glinty::conditional_panel(
+                            condition = glinty::input_is("backend", "chatterbox"),
+                            glinty::text_input("chatterbox_url", "Chatterbox URL",
+                                               value = Sys.getenv("TTS_API_BASE",
+                                                   "http://localhost:7810")),
+                            glinty::ui_output("chatterbox_container_btn")
+                        ),
+                        # Qwen3-TTS URL and container control
+                        glinty::conditional_panel(
+                            condition = glinty::input_is("backend", "qwen3"),
+                            glinty::text_input("qwen3_url", "Qwen3-TTS URL",
+                                               value = Sys.getenv("QWEN3_TTS_BASE",
+                                                   "http://localhost:7811")),
+                            glinty::ui_output("qwen3_container_btn")
+                        ),
+                        # API keys are never prefilled; see key_placeholder()
+                        glinty::conditional_panel(
+                            condition = glinty::input_is("backend", "openai"),
+                            glinty::password_input("openai_key", "OpenAI API Key",
+                                placeholder = key_placeholder("OPENAI_API_KEY"))
+                        ),
+                        glinty::conditional_panel(
+                            condition = glinty::input_is("backend", "elevenlabs"),
+                            glinty::password_input("elevenlabs_key",
+                                "ElevenLabs API Key",
+                                placeholder = key_placeholder("ELEVENLABS_API_KEY"))
                         )
                     )
                 ),
 
                 # Output format
-                glinty::div(
-                            class = "settings-section",
-                            glinty::div(class = "section-title", "Output Format"),
-                            glinty::select_input(
+                glinty::panel(
+                              variant = "sidebar", title = "Output Format",
+                              glinty::select_input(
                         "output_format", "",
                         choices = c("WAV" = "wav", "MP3" = "mp3"),
                         selected = "wav"
