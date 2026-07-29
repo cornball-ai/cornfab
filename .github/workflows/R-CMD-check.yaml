@@ -6,6 +6,11 @@ on:
 
 env:
   _R_CHECK_FORCE_SUGGESTS_: "false"
+  # Actions provisions this for every run, no secret to rotate.
+  # Anonymous API access is rate-limited per runner IP, so a public
+  # repo still needs a token to fetch reliably -- just not a personal
+  # one that can expire.
+  GITHUB_PAT: ${{ secrets.GITHUB_TOKEN }}
 
 jobs:
   R-CMD-check:
