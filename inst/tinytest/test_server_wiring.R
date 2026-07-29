@@ -217,3 +217,16 @@ targets <- regmatches(css, gregexpr('\\[data-g-target="[^"]*"\\]', css))[[1]]
 for (t in unique(targets)) {
     expect_true(grepl(t, html, fixed = TRUE))
 }
+
+# --- no app rule cancels a glinty variant ---
+#
+# glinty emits `g-btn g-btn-<variant>` and this stylesheet loads after
+# glinty's, so a rule on the base class wins at equal specificity and
+# cancels every variant. Nothing fails when it happens: the app just
+# has one kind of button, which reads as a design choice rather than a
+# bug. earshot shipped a column of ghost history rows as gradient pills
+# that way.
+expect_equal(
+  glinty::css_variant_conflicts(
+    system.file("app/www/styles.css", package = "cornfab")),
+  character(0))
