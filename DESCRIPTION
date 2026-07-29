@@ -1,6 +1,6 @@
 Package: cornfab
 Title: Text-to-Speech Web App
-Version: 0.2.0
+Version: 0.0.1
 Authors@R: c(
     person("Troy", "Hernandez", email = "troy@cornball.ai",
            role = c("aut", "cre"),
@@ -10,7 +10,8 @@ Description: A web application for generating speech from text using
     'tts.api'. Enter text, select a voice and backend, and generate
     audio files, with voice cloning and voice design where the backend
     supports them. Built on 'glinty', so the only web dependencies are
-    'jsonlite' and 'digest'.
+    'jsonlite' and 'digest'. Alpha: unreleased, and still changing
+    with 'glinty' underneath it.
 License: MIT + file LICENSE
 Encoding: UTF-8
 Imports:
