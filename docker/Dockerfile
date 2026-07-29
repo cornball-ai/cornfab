@@ -1,7 +1,7 @@
-FROM rocker/shiny:4.4
+FROM rocker/r-ver:4.4
 
 LABEL maintainer="Troy Hernandez <troy@cornball.ai>"
-LABEL description="cornfab: Text-to-speech Shiny app (CPU-only UI)"
+LABEL description="cornfab: Text-to-speech web app (CPU-only UI)"
 
 # System dependencies
 RUN apt-get update && apt-get install -y --no-install-recommends \
@@ -12,14 +12,15 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     ffmpeg \
     && rm -rf /var/lib/apt/lists/*
 
-# Install R packages from CRAN
+# Install R packages from CRAN.
+# glinty replaces shiny + bslib; its only deps are jsonlite and digest.
 RUN install2.r --error --skipinstalled \
     remotes \
-    shiny \
-    bslib \
-    jsonlite
+    jsonlite \
+    digest
 
 # Install cornball-ai packages from GitHub
+RUN R -e 'remotes::install_github("cornball-ai/glinty")'
 RUN R -e 'remotes::install_github("cornball-ai/tts.api")'
 RUN R -e 'remotes::install_github("cornball-ai/cornfab")'
 
@@ -28,4 +29,4 @@ RUN mkdir -p /root/.cornfab/voices
 
 EXPOSE 7803
 
-CMD ["R", "-e", "cornfab::run_app(host = '0.0.0.0')"]
+CMD ["R", "-e", "cornfab::run_app()"]

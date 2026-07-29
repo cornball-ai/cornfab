@@ -3,20 +3,28 @@
 \alias{run_app}
 \title{Run the Cornfab App}
 \usage{
-run_app(host = "0.0.0.0", port = 7803, ...)
+run_app(port = 7803, max_upload = 67108864, ...)
 }
 \arguments{
-\item{host}{Host address to bind to. Defaults to "0.0.0.0" for network access.}
-
 \item{port}{Port number. Defaults to 7803.}
 
-\item{...}{Additional arguments passed to shiny::runApp().}
+\item{max_upload}{Largest accepted upload in bytes. Defaults to
+64 MB, since reference voice clips routinely exceed glinty's own
+10 MB default. Request bodies are buffered whole in memory.}
+
+\item{...}{Additional arguments passed to glinty::run_app().}
 }
 \value{
-Runs the Shiny app (does not return).
+Runs the app (does not return).
 }
 \description{
-Launch the Cornfab text-to-speech Shiny application.
+Launch the Cornfab text-to-speech application.
+}
+\details{
+glinty's server listens on all interfaces, so treat the port as
+reachable from the local network. There is no host argument; bind
+scoping belongs to the firewall or a reverse proxy.
+
 }
 \examples{
 \dontrun{

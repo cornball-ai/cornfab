@@ -6,16 +6,16 @@
 app_server(input, output, session)
 }
 \arguments{
-\item{input}{Shiny input object.}
+\item{input}{glinty input proxy.}
 
-\item{output}{Shiny output object.}
+\item{output}{glinty output proxy.}
 
-\item{session}{Shiny session object.}
+\item{session}{glinty session.}
 }
 \value{
 NULL (side effects only).
 }
 \description{
-Server logic for the Cornfab Shiny app.
+Server logic for the Cornfab app.
 }
 \keyword{internal}

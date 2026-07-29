@@ -1,16 +1,24 @@
 Package: cornfab
-Title: Text-to-Speech 'Shiny' App
-Version: 0.1.0
-Authors@R: person("Troy", "Hernandez", role = c("aut", "cre"),
-                  email = "troy@cornball.ai")
-Description: A 'Shiny' application for generating speech from text using 'tts.api'.
-    Enter text, select a voice and backend, and generate audio files.
+Title: Text-to-Speech Web App
+Version: 0.0.3
+Authors@R: c(
+    person("Troy", "Hernandez", email = "troy@cornball.ai",
+           role = c("aut", "cre"),
+           comment = c(ORCID = "0009-0005-4248-604X")),
+    person("cornball.ai", role = "cph"))
+Description: A web application for generating speech from text using
+    'tts.api'. Enter text, select a voice and backend, and generate
+    audio files, with voice cloning and voice design where the backend
+    supports them. Built on 'glinty', so the only web dependencies are
+    'jsonlite' and 'digest'. Alpha: unreleased, and still changing
+    with 'glinty' underneath it.
 License: MIT + file LICENSE
 Encoding: UTF-8
 Imports:
-    bslib,
+    glinty (>= 0.0.5),
     jsonlite,
-    shiny,
+    stats,
+    tools,
     tts.api
 Suggests:
     chatterbox,
@@ -18,4 +26,5 @@ Suggests:
     pkgload,
     tinytest
 Remotes:
+    cornball-ai/glinty,
     cornball-ai/tts.api

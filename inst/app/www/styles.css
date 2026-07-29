@@ -1,4 +1,16 @@
-/* Cornfab - Cornball AI Branding */
+/* Cornfab - Cornball AI branding over glinty's component styles.
+ *
+ * The component vocabulary now expresses the layout, so this is only
+ * what glinty has no opinion about: brand colours, the header, the
+ * three-column shell, and the treatments that make cornfab look like
+ * cornfab. Everything that was re-implementing a row, a card or a
+ * sidebar is gone -- those are components.
+ *
+ * Structural hooks are ids (set on the component) or [data-g-target]
+ * (the handler a control reports to). Not the component's own class:
+ * an event button carries no DOM id, and a class is not something the
+ * vocabulary lets an app set.
+ */
 
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap');
 
@@ -17,285 +29,131 @@
   --gradient-hover: linear-gradient(135deg, #4f46e5 0%, #7c3aed 50%, #c026d3 100%);
 }
 
-/* Global styles */
 body {
   font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
   background-color: var(--bg-light);
   color: var(--text-primary);
   letter-spacing: -0.01em;
   line-height: 1.7;
+  margin: 0;
+}
+
+/* glinty centres a page in a readable column, which is right for a
+   document and wrong for a three-pane tool. */
+.g-page {
+  max-width: none;
+  padding: 0;
 }
 
 /* Header */
-.cornfab-header {
-  background: #000 !important;
-  padding: 0.75rem 1.5rem !important;
+#cornfab-header {
+  background: #000;
+  padding: 0.75rem 1.5rem;
+  border: none;
+  border-radius: 0;
   position: relative;
   z-index: 100;
-  margin: 0 !important;
 }
 
-.header-content {
-  display: flex;
-  align-items: center;
-  gap: 0.75rem;
-}
-
-.header-link {
-  display: flex;
-  align-items: center;
-  gap: 0.75rem;
+#cornfab-header .g-link {
+  color: #fff;
   text-decoration: none;
   transition: opacity 0.2s ease;
 }
 
-.header-link:hover {
+#cornfab-header .g-link:hover {
   opacity: 0.8;
 }
 
-.header-logo {
+#cornfab-header .g-image {
   height: 32px;
   width: auto;
 }
 
-.header-title {
-  font-family: 'Inter', sans-serif;
+#cornfab-header .g-text-heading {
   font-size: 1.25rem;
   font-weight: 800;
-  color: white;
-  letter-spacing: -0.02em;
+  letter-spacing: -0.03em;
+  color: #fff;
+  margin: 0;
 }
 
-.header-spacer {
-  flex: 1;
-}
-
-.header-status {
-  font-family: 'JetBrains Mono', monospace;
+#header_status {
   font-size: 0.8rem;
   color: var(--text-muted);
 }
 
-/* Main container - 3 column layout */
-.main-container {
-  display: flex;
+/* Shell. The row is a component; the height is not -- a viewport-tall
+   app with independently scrolling panes is a layout decision the
+   vocabulary leaves to the app. */
+#main-layout {
   height: calc(100vh - 60px);
+  align-items: stretch;
   gap: 0;
 }
 
-/* Left sidebar - History */
-.left-sidebar {
-  width: 280px;
-  background: var(--bg-card);
-  border-right: 1px solid var(--border-light);
-  display: flex;
-  flex-direction: column;
+#left-sidebar,
+#right-sidebar {
+  overflow-y: auto;
   padding: 1rem;
 }
 
-.sidebar-header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  margin-bottom: 0.75rem;
-  font-weight: 600;
-  color: var(--text-primary);
-}
-
-.sidebar-options {
-  margin-bottom: 0.75rem;
-  padding-bottom: 0.75rem;
-  border-bottom: 1px solid var(--border-light);
-}
-
-.sidebar-options .form-check {
-  margin-bottom: 0;
-}
-
-.sidebar-options .form-check-label {
-  font-size: 0.8rem;
-  color: var(--text-secondary);
-}
-
-/* Center content */
-.center-content {
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-  padding: 1.5rem;
-  gap: 1.5rem;
-  overflow-y: auto;
-}
-
-/* Input panel */
-.input-panel {
+#left-sidebar {
+  border-right: 1px solid var(--border-light);
   background: var(--bg-card);
-  border: 1px solid var(--border-light);
-  border-radius: 12px;
-  padding: 1.25rem;
 }
 
-.panel-header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  margin-bottom: 0.75rem;
-  font-weight: 600;
-  color: var(--text-primary);
+#right-sidebar {
+  border-left: 1px solid var(--border-light);
+  background: var(--bg-card);
 }
 
-.char-count {
+#center-content {
+  padding: 1.5rem;
+  overflow-y: auto;
+  min-width: 0;
+}
+
+/* The main textarea earns a bigger box than the shared field style. */
+#text_input {
+  font-size: 1rem;
+  line-height: 1.6;
+  min-height: 150px;
+  resize: vertical;
+}
+
+#voice_description {
+  font-size: 0.875rem;
+  min-height: 80px;
+  resize: vertical;
+}
+
+/* An empty label is a field with nothing to say, not a gap to keep. */
+.g-field label:empty {
+  display: none;
+}
+
+#char_count,
+#audio_status {
   font-family: 'JetBrains Mono', monospace;
   font-size: 0.75rem;
   color: var(--text-muted);
 }
 
-.text-input-wrapper {
-  margin-bottom: 1rem;
-}
-
-.text-input {
-  font-family: 'Inter', sans-serif;
-  font-size: 1rem;
-  line-height: 1.6;
-  border: 1px solid var(--border-light);
-  border-radius: 8px;
-  padding: 0.75rem;
+#audio_player {
   width: 100%;
-  resize: vertical;
-  min-height: 150px;
 }
 
-.text-input:focus {
-  border-color: var(--primary);
-  box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.15);
-  outline: none;
-}
-
-.input-controls {
-  display: flex;
-  align-items: flex-end;
-  gap: 1rem;
-}
-
-.voice-clone-section {
-  flex: 1;
-}
-
-.voice-clone-section .shiny-input-container {
-  margin-bottom: 0;
-}
-
-/* Output panel */
-.output-panel {
-  background: var(--bg-card);
-  border: 1px solid var(--border-light);
-  border-radius: 12px;
-  padding: 1.25rem;
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-}
-
-.audio-container {
-  margin-bottom: 1rem;
-}
-
-.audio-container audio {
-  width: 100%;
-  border-radius: 8px;
-}
-
-.output-controls {
-  display: flex;
-  gap: 0.75rem;
-  margin-bottom: 1rem;
-}
-
-.no-audio {
-  text-align: center;
-  padding: 2rem;
-  color: var(--text-muted);
-  background: var(--bg-light);
-  border-radius: 8px;
-}
-
-.details-content,
-.text-content {
-  font-family: 'JetBrains Mono', monospace;
-  font-size: 0.875rem;
-  padding: 0.75rem;
-  background: var(--bg-light);
-  border-radius: 8px;
-  white-space: pre-wrap;
-}
-
-/* Right sidebar - Settings */
-.right-sidebar {
-  width: 280px;
-  background: var(--bg-card);
-  border-left: 1px solid var(--border-light);
-  padding: 1rem;
-  overflow-y: auto;
-}
-
-.settings-section {
-  margin-bottom: 1.25rem;
-}
-
-.section-title {
-  font-weight: 600;
-  font-size: 0.875rem;
-  color: var(--text-primary);
-  margin-bottom: 0.5rem;
-}
-
-.section-title-row {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  margin-bottom: 0.5rem;
-}
-
-/* Form controls in sidebar */
-.right-sidebar .shiny-input-container {
-  margin-bottom: 0;
-}
-
-.right-sidebar .form-control,
-.right-sidebar .form-select {
-  font-size: 0.875rem;
-}
-
-/* Collapsible sections */
-.params-details,
-.api-details {
-  border: 1px solid var(--border-light);
-  border-radius: 8px;
-  padding: 0.5rem 0.75rem;
-}
-
-.params-details summary,
-.api-details summary {
+/* Buttons. glinty's .g-btn is the base and its variants carry the
+   roles; these are the brand treatments over them. Loaded after
+   glinty.css, so equal specificity wins. */
+.g-btn {
+  font-family: inherit;
+  font-size: 0.9rem;
   cursor: pointer;
-  font-weight: 500;
-  font-size: 0.875rem;
-  color: var(--text-secondary);
-  user-select: none;
 }
 
-.params-details summary:hover,
-.api-details summary:hover {
-  color: var(--primary);
-}
-
-.params-content,
-.api-content {
-  padding-top: 0.75rem;
-}
-
-/* Buttons */
-.btn-generate {
+[data-g-target="generate"] {
   background: var(--gradient-primary);
   border: none;
   color: white;
@@ -306,13 +164,14 @@ body {
   box-shadow: 0 2px 8px rgba(99, 102, 241, 0.3);
 }
 
-.btn-generate:hover {
+[data-g-target="generate"]:hover {
   background: var(--gradient-hover);
   transform: translateY(-1px);
   box-shadow: 0 4px 12px rgba(99, 102, 241, 0.4);
 }
 
-.btn-download {
+.g-download {
+  box-shadow: none;
   background: var(--primary);
   border: none;
   color: white;
@@ -321,11 +180,12 @@ body {
   border-radius: 8px;
 }
 
-.btn-download:hover {
+.g-download:hover {
   background: var(--primary-dark);
 }
 
-.btn-secondary {
+.g-btn-secondary {
+  box-shadow: none;
   background: var(--bg-light);
   border: 1px solid var(--border-light);
   color: var(--text-secondary);
@@ -334,114 +194,54 @@ body {
   border-radius: 8px;
 }
 
-.btn-secondary:hover {
+.g-btn-secondary:hover {
   background: var(--border-light);
   color: var(--text-primary);
 }
 
-.btn-icon {
-  background: none;
-  border: none;
+.g-btn-ghost {
+  box-shadow: none;
   color: var(--text-muted);
-  padding: 0.25rem;
-  cursor: pointer;
+  padding: 0.25rem 0.4rem;
 }
 
-.btn-icon:hover {
+.g-btn-ghost:hover {
   color: var(--primary);
 }
 
-/* History list */
-.history-list {
-  display: flex;
-  flex-direction: column;
-  gap: 0.5rem;
-  overflow-y: auto;
-  flex: 1;
-  min-height: 0;
+[data-g-target="history_delete"]:hover {
+  color: var(--accent);
 }
 
-.history-empty {
-  color: var(--text-muted);
-  font-size: 0.875rem;
-  text-align: center;
-  padding: 2rem 1rem;
+/* A history row's timestamp is the press target for the whole entry,
+   so it reads as text rather than as a button. */
+[data-g-target="history_click"] {
+  font-weight: 600;
+  font-size: 0.8rem;
+  color: var(--text-primary);
+  text-align: left;
 }
 
-.history-item {
+#history_list .g-panel-card {
+  border: 1px solid var(--primary);
+  box-shadow: 0 0 0 2px rgba(99, 102, 241, 0.15);
   padding: 0.75rem;
-  background: var(--bg-light);
+}
+
+#history_list .g-panel-plain {
   border: 1px solid var(--border-light);
   border-radius: 8px;
-  cursor: pointer;
-  transition: all 0.2s ease;
+  background: var(--bg-light);
+  padding: 0.75rem;
 }
 
-.history-item:hover {
+#history_list .g-panel-plain:hover {
   border-color: var(--primary-light);
   background: #fff;
 }
 
-.history-item.selected {
-  border-color: var(--primary);
-  box-shadow: 0 0 0 2px rgba(99, 102, 241, 0.15);
-  background: #fff;
-}
-
-.history-item-header {
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-  margin-bottom: 0.375rem;
-}
-
-.history-timestamp {
-  font-size: 0.75rem;
-  color: var(--text-muted);
-}
-
-.history-backend {
-  font-size: 0.7rem;
-  color: var(--primary);
-  background: rgba(99, 102, 241, 0.1);
-  padding: 0.125rem 0.375rem;
-  border-radius: 4px;
-  margin-left: auto;
-}
-
-.history-delete-btn {
-  background: none;
-  border: none;
-  color: var(--text-muted);
-  font-size: 0.875rem;
-  cursor: pointer;
-  padding: 0 0.25rem;
-  line-height: 1;
-  opacity: 0;
-  transition: opacity 0.2s ease;
-}
-
-.history-item:hover .history-delete-btn {
-  opacity: 1;
-}
-
-.history-delete-btn:hover {
-  color: var(--accent);
-}
-
-.history-preview {
-  font-size: 0.8rem;
-  color: var(--text-secondary);
-  line-height: 1.4;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  display: -webkit-box;
-  -webkit-line-clamp: 2;
-  -webkit-box-orient: vertical;
-}
-
 /* Form inputs */
-.form-control, .form-select, .shiny-input-container select {
+.g-input, .g-select, .g-textarea, .g-number {
   border: 1px solid var(--border-light);
   border-radius: 8px;
   padding: 0.5rem 0.75rem;
@@ -449,36 +249,50 @@ body {
   transition: all 0.2s ease;
 }
 
-.form-control:focus, .form-select:focus {
+.g-input:focus, .g-select:focus, .g-textarea:focus, .g-number:focus {
   border-color: var(--primary);
   box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.15);
   outline: none;
 }
 
-/* Slider styling */
-.irs--shiny .irs-bar {
+.g-slider::-webkit-slider-thumb {
   background: var(--primary);
 }
 
-.irs--shiny .irs-handle {
+.g-slider {
   border-color: var(--primary);
 }
 
 /* Tabs */
-.nav-underline .nav-link {
+.g-tab-btn {
   font-weight: 500;
   color: var(--text-secondary);
   border: none;
   padding: 0.5rem 1rem;
 }
 
-.nav-underline .nav-link:hover {
+.g-tab-btn:hover {
   color: var(--primary);
 }
 
-.nav-underline .nav-link.active {
+.g-tab-btn.g-tab-active {
   color: var(--primary);
   border-bottom: 2px solid var(--primary);
+}
+
+/* Collapsible settings. The section already sits inside a panel, so a
+   second border around it is a box in a box. */
+.g-collapse {
+  border: none;
+  padding: 0;
+}
+
+.g-collapse-title {
+  color: var(--text-primary);
+}
+
+.g-collapse-title:hover {
+  color: var(--primary);
 }
 
 /* Scrollbar */
@@ -500,113 +314,58 @@ body {
   background: var(--text-muted);
 }
 
-/* Notifications */
-.shiny-notification {
-  border-radius: 8px;
-  border: none;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+/* Modals and progress (glinty) */
+.g-modal-box {
   font-family: 'Inter', sans-serif;
+  border-radius: 12px;
 }
 
-.shiny-notification-message {
-  background: var(--primary);
-  color: white;
+.g-modal-title {
+  font-weight: 700;
+  letter-spacing: -0.02em;
 }
 
-.shiny-notification-error {
-  background: var(--accent);
-  color: white;
-}
-
-/* Voice upload section */
-.voice-upload-section {
-  margin-top: 0.5rem;
-}
-
-.voice-upload-section .form-group {
-  margin-bottom: 0.25rem;
-}
-
-.upload-status {
-  display: block;
-  font-size: 0.75rem;
-  color: var(--text-muted);
-  padding: 0.25rem 0;
-}
-
-.upload-status.success {
-  color: #10b981;
-}
-
-.upload-status.error {
-  color: var(--accent);
-}
-
-/* History params */
-.history-params {
-  font-size: 0.7rem;
-  color: var(--text-muted);
-  margin-top: 0.25rem;
-  font-family: 'JetBrains Mono', monospace;
-}
-
-/* Voice design section */
-.voice-design-toggle {
-  margin-bottom: 0.5rem;
-}
-
-.voice-design-toggle .form-check {
-  margin-bottom: 0;
-}
-
-.voice-design-toggle .form-check-label {
-  font-size: 0.8rem;
-  color: var(--text-secondary);
-}
-
-.voice-design-section {
-  margin-top: 0.5rem;
-}
-
-.voice-description-input {
-  font-family: 'Inter', sans-serif;
-  font-size: 0.875rem;
-  line-height: 1.5;
+.g-modal-close {
+  background: var(--bg-light);
   border: 1px solid var(--border-light);
-  border-radius: 8px;
-  padding: 0.625rem;
-  width: 100%;
-  resize: vertical;
-  min-height: 80px;
+  color: var(--text-secondary);
+  box-shadow: none;
 }
 
-.voice-description-input:focus {
-  border-color: var(--primary);
-  box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.15);
-  outline: none;
+.g-modal-close:hover, .g-modal-close:focus {
+  background: var(--border-light);
+  color: var(--text-primary);
+  box-shadow: none;
+  transform: none;
 }
 
-.voice-description-input::placeholder {
-  color: var(--text-muted);
-  font-size: 0.8rem;
+.g-progress {
+  font-family: 'Inter', sans-serif;
+  border-radius: 10px;
 }
 
-/* Container control section */
-.container-control {
-  margin-top: 0.5rem;
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-  flex-wrap: wrap;
+.g-progress-fill {
+  background: var(--gradient-primary);
 }
 
-.container-control .btn-sm {
-  font-size: 0.75rem;
-  padding: 0.25rem 0.5rem;
-}
+/* Narrow windows: the sidebars stop being columns and the whole thing
+   scrolls as one. The sizing custom properties are glinty's, and
+   overriding them here is why they exist -- an inline style could not
+   be reached from a stylesheet at all. */
+@media (max-width: 1100px) {
+  #main-layout {
+    flex-wrap: wrap;
+    height: auto;
+  }
 
-.vram-usage {
-  font-family: 'JetBrains Mono', monospace;
-  font-size: 0.7rem;
-  color: var(--text-muted);
+  #left-sidebar,
+  #right-sidebar,
+  #center-content {
+    --g-width: auto;
+    --g-basis: 100%;
+    --g-grow: 1;
+    overflow-y: visible;
+    border: none;
+    border-bottom: 1px solid var(--border-light);
+  }
 }
