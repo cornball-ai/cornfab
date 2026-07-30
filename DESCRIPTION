@@ -1,6 +1,6 @@
 Package: cornfab
 Title: Text-to-Speech Web App
-Version: 0.0.3.1
+Version: 0.0.3.2
 Authors@R: c(
     person("Troy", "Hernandez", email = "troy@cornball.ai",
            role = c("aut", "cre"),
@@ -15,7 +15,7 @@ Description: A web application for generating speech from text using
 License: MIT + file LICENSE
 Encoding: UTF-8
 Imports:
-    glinty (>= 0.0.5.28),
+    glinty (>= 0.0.5.29),
     jsonlite,
     stats,
     tools,
