@@ -110,13 +110,7 @@ app_server <- function(input, output, session) {
 
     # Container controls -----------------------------------------------
 
-    has_gpuctl <- requireNamespace("gpu.ctl", quietly = TRUE)
-
     container_running <- function(name) {
-        if (has_gpuctl) {
-            svc_name <- .cornfab_svc_name(name)
-            return(svc_name %in% gpu.ctl::gpu_status()$active)
-        }
         tryCatch({
             out <- system2("docker", c("inspect", "-f", "{{.State.Running}}", name),
                            stdout = TRUE, stderr = TRUE)
@@ -125,32 +119,24 @@ app_server <- function(input, output, session) {
     }
 
     get_vram_usage <- function() {
-        if (has_gpuctl) {
-            tryCatch({
-                total <- gpu.ctl::gpu_get_vram()
-                used <- gpu.ctl::gpu_used_vram()
-                list(used = used * 1024, total = total * 1024)
-            }, error = function(e) NULL)
-        } else {
-            # No GPU is the normal case on a laptop, and nvidia-smi warns
-            # rather than erroring when it is missing or fails. Suppress
-            # both paths and report "no VRAM info" instead of leaking
-            # warnings into the console on every 5-second refresh.
-            suppressWarnings(tryCatch({
-                out <- system2("nvidia-smi",
-                               c("--query-gpu=memory.used,memory.total",
-                                 "--format=csv,noheader,nounits"),
-                               stdout = TRUE, stderr = TRUE)
-                parts <- strsplit(trimws(out[1]), ",\\s*")[[1]]
-                used <- as.numeric(parts[1])
-                total <- as.numeric(parts[2])
-                if (length(used) != 1L || is.na(used) ||
-                                      length(total) != 1L || is.na(total)) {
-                    return(NULL)
-                }
-                list(used = used, total = total)
-            }, error = function(e) NULL))
-        }
+        # No GPU is the normal case on a laptop, and nvidia-smi warns
+        # rather than erroring when it is missing or fails. Suppress
+        # both paths and report "no VRAM info" instead of leaking
+        # warnings into the console on every 5-second refresh.
+        suppressWarnings(tryCatch({
+            out <- system2("nvidia-smi",
+                           c("--query-gpu=memory.used,memory.total",
+                             "--format=csv,noheader,nounits"),
+                           stdout = TRUE, stderr = TRUE)
+            parts <- strsplit(trimws(out[1]), ",\\s*")[[1]]
+            used <- as.numeric(parts[1])
+            total <- as.numeric(parts[2])
+            if (length(used) != 1L || is.na(used) ||
+                                  length(total) != 1L || is.na(total)) {
+                return(NULL)
+            }
+            list(used = used, total = total)
+        }, error = function(e) NULL))
     }
 
     # Both container panels are the same widget over a different service.
@@ -935,13 +921,13 @@ configure_backend <- function(backend) {
             tts.api::set_tts_key(key)
         }
     } else if (identical(backend, "chatterbox")) {
-        tts.api::set_tts_base(.cornfab_service_url("chatterbox",
-                Sys.getenv("TTS_API_BASE", "http://localhost:7810")))
+        tts.api::set_tts_base(
+                Sys.getenv("TTS_API_BASE", "http://localhost:7810"))
     } else if (identical(backend, "native")) {
         # Native chatterbox - model loads in the R process, nothing to set
     } else if (identical(backend, "qwen3")) {
-        tts.api::set_tts_base(.cornfab_service_url("qwen3-tts",
-                Sys.getenv("QWEN3_TTS_BASE", "http://localhost:7811")))
+        tts.api::set_tts_base(
+                Sys.getenv("QWEN3_TTS_BASE", "http://localhost:7811"))
     } else if (identical(backend, "elevenlabs")) {
         key <- Sys.getenv("ELEVENLABS_API_KEY", "")
         if (nzchar(key)) {
@@ -996,68 +982,24 @@ get_local_voices <- function() {
                     paste0(voice_names, " (custom)"))
 }
 
-# Get service URL from gpu.ctl or use fallback
-.cornfab_service_url <- function(svc_name, fallback) {
-    if (requireNamespace("gpu.ctl", quietly = TRUE)) {
-        url <- tryCatch(gpu.ctl::gpu_service_url(svc_name),
-                        error = function(e) NULL)
-        if (!is.null(url)) {
-            return(url)
-        }
-    }
-    fallback
-}
-
-# Map container name to gpu.ctl service name
-.cornfab_svc_name <- function(container) {
-    map <- c("qwen3-tts-api" = "qwen3-tts", "chatterbox" = "chatterbox")
-    unname(map[container]) %||% container
-}
-
-# Acquire GPU service (gpu.ctl with docker fallback)
+# Start the container backing a GPU service
 .cornfab_gpu_acquire <- function(container, status_msg) {
-    svc_name <- .cornfab_svc_name(container)
-
-    if (requireNamespace("gpu.ctl", quietly = TRUE) &&
-        svc_name %in% gpu.ctl::gpu_services()$name) {
-        tryCatch({
-            gpu.ctl::gpu_acquire(svc_name)
-            url <- gpu.ctl::gpu_service_url(svc_name)
-            if (!is.null(url)) tts.api::set_tts_base(url)
-            status_msg(paste0("Service ready: ", svc_name))
-        }, error = function(e) {
-            status_msg(paste("Start failed:", conditionMessage(e)))
-        })
+    result <- tryCatch(
+                       system2("docker", c("start", container), stdout = TRUE,
+                               stderr = TRUE),
+                       error = function(e) conditionMessage(e)
+    )
+    if (any(grepl(container, result))) {
+        status_msg("Container started. Waiting for model to load...")
     } else {
-        result <- tryCatch(
-                           system2("docker", c("start", container), stdout = TRUE,
-                                   stderr = TRUE),
-                           error = function(e) conditionMessage(e)
-        )
-        if (any(grepl(container, result))) {
-            status_msg("Container started. Waiting for model to load...")
-        } else {
-            status_msg(paste("Start failed:", paste(result, collapse = " ")))
-        }
+        status_msg(paste("Start failed:", paste(result, collapse = " ")))
     }
 }
 
-# Release GPU service (gpu.ctl with docker fallback)
+# Stop the container backing a GPU service
 .cornfab_gpu_release <- function(container, status_msg) {
-    svc_name <- .cornfab_svc_name(container)
-
-    if (requireNamespace("gpu.ctl", quietly = TRUE) &&
-        svc_name %in% gpu.ctl::gpu_services()$name) {
-        tryCatch({
-            gpu.ctl::gpu_release(svc_name)
-            status_msg(paste0("Service stopped: ", svc_name))
-        }, error = function(e) {
-            status_msg(paste("Stop failed:", conditionMessage(e)))
-        })
-    } else {
-        system2("docker", c("stop", container), stdout = TRUE, stderr = TRUE)
-        status_msg("Container stopped.")
-    }
+    system2("docker", c("stop", container), stdout = TRUE, stderr = TRUE)
+    status_msg("Container stopped.")
 }
 
 # Get voices for backend

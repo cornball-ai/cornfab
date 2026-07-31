@@ -1,6 +1,6 @@
 Package: cornfab
 Title: Text-to-Speech Web App
-Version: 0.0.3.2
+Version: 0.0.3.3
 Authors@R: c(
     person("Troy", "Hernandez", email = "troy@cornball.ai",
            role = c("aut", "cre"),
@@ -22,7 +22,6 @@ Imports:
     tts.api
 Suggests:
     chatterbox,
-    gpu.ctl,
     pkgload,
     tinytest
 Remotes:

@@ -1,3 +1,11 @@
+# cornfab 0.0.3.3
+
+- Drop the gpu.ctl integration added in f88255b. gpu.ctl is a private
+  repo, so a public package could not declare it honestly, and every
+  call site already carried a working `docker` fallback. Container
+  start/stop, running-state, and VRAM display now use `docker` and
+  `nvidia-smi` on every path. `gpu.ctl` leaves Suggests.
+
 # cornfab 0.0.3
 
 Ported onto glinty's protocol v3 component vocabulary. The UI is a
