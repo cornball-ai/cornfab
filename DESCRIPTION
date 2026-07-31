@@ -22,7 +22,6 @@ Imports:
     tts.api
 Suggests:
     chatterbox,
-    gpu.ctl,
     pkgload,
     tinytest
 Remotes:
